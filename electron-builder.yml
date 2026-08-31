@@ -1,0 +1,30 @@
+# Конфигурация сборки установщика Windows (.exe) для «Генератор наклеек 4K»
+appId: com.4k.labelgen
+productName: "Генератор Наклеек 4K"
+copyright: "© 2026 4K"
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**
+  - electron/**
+  - package.json
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: "Nakleyki4K-Setup-${version}.${ext}"
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: "Генератор Наклеек 4K"
+  installerLanguages:
+    - ru_RU
+    - en_US

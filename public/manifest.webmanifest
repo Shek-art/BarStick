@@ -1,0 +1,26 @@
+{
+  "name": "Генератор наклеек 4K",
+  "short_name": "Наклейки 4K",
+  "description": "Генерация и печать товарных наклеек: EAN-13, тиражи, экспорт PDF/ZIP",
+  "lang": "ru",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#141d17",
+  "theme_color": "#141d17",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "https://image.qwenlm.ai/generated-images/2a69144c-bebe-46af-a9e1-d936bcb95da2/_result.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

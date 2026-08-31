@@ -1,1 +1,180 @@
 @import "tailwindcss";
+
+@theme {
+  --font-display: "Unbounded", "Golos Text", sans-serif;
+  --font-body: "Golos Text", "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "Consolas", monospace;
+
+  --color-ink-950: #10170f;
+  --color-ink-900: #141d17;
+  --color-ink-800: #1a2620;
+  --color-ink-700: #223129;
+  --color-ink-600: #2e4237;
+  --color-ink-500: #44604f;
+  --color-ink-300: #8ba394;
+  --color-ink-200: #b8c8bc;
+
+  --color-paper: #f7f8f4;
+  --color-paper-2: #eef1ea;
+  --color-canvas: #e6ebe2;
+
+  --color-moss-400: #55c483;
+  --color-moss-500: #34a466;
+  --color-moss-600: #23854f;
+  --color-moss-700: #1b6b40;
+
+  --color-lime-glow: #3ecf7a;
+  --color-amber-warn: #e0a33c;
+  --color-rust: #cf5c46;
+  --color-sky-info: #4f8fbe;
+}
+
+html {
+  font-family: var(--font-body);
+}
+
+::selection {
+  background: rgba(62, 207, 122, 0.35);
+}
+
+/* ── Рабочая область: многослойный фон ─────────────────────── */
+.workspace-bg {
+  background-color: var(--color-canvas);
+  background-image:
+    radial-gradient(ellipse 60% 45% at 18% -5%, rgba(52, 164, 102, 0.14), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 88% 108%, rgba(224, 163, 60, 0.12), transparent 60%),
+    radial-gradient(rgba(20, 29, 23, 0.13) 1px, transparent 1.4px);
+  background-size: auto, auto, 22px 22px;
+}
+
+.dark-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+
+/* ── Полосы прокрутки ──────────────────────────────────────── */
+.nice-scroll::-webkit-scrollbar { width: 9px; height: 9px; }
+.nice-scroll::-webkit-scrollbar-track { background: transparent; }
+.nice-scroll::-webkit-scrollbar-thumb {
+  background: rgba(68, 96, 79, 0.35);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.nice-scroll::-webkit-scrollbar-thumb:hover { background-color: rgba(68, 96, 79, 0.6); }
+
+/* ── Анимации ──────────────────────────────────────────────── */
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.rise-in { animation: rise-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.toast-in { animation: toast-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes pop-in {
+  0% { opacity: 0; transform: scale(0.85); }
+  70% { transform: scale(1.04); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.pop-in { animation: pop-in 0.3s ease-out both; }
+
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(62, 207, 122, 0.55); }
+  60% { box-shadow: 0 0 0 6px rgba(62, 207, 122, 0); }
+}
+.pulse-dot { animation: pulse-dot 1.8s ease-out infinite; }
+
+@keyframes stripes-move {
+  from { background-position: 0 0; }
+  to { background-position: 28px 0; }
+}
+.progress-stripes {
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.28) 25%, transparent 25%,
+    transparent 50%, rgba(255, 255, 255, 0.28) 50%,
+    rgba(255, 255, 255, 0.28) 75%, transparent 75%
+  );
+  background-size: 28px 28px;
+  animation: stripes-move 0.7s linear infinite;
+}
+
+@keyframes blink-soft { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.blink-soft { animation: blink-soft 1.4s ease-in-out infinite; }
+
+/* ── Поля ввода ────────────────────────────────────────────── */
+.field-area {
+  width: 100%;
+  resize: none;
+  border: 1.5px solid #d6ddd2;
+  background: #fbfcf9;
+  border-radius: 10px;
+  padding: 9px 11px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #1c2a22;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+.field-area::placeholder { color: #9aa89d; }
+.field-area:hover { border-color: #b9c6ba; }
+.field-area:focus {
+  border-color: var(--color-moss-500);
+  background: #ffffff;
+  box-shadow: 0 0 0 3.5px rgba(52, 164, 102, 0.16);
+}
+
+/* ── Кнопки тулбара ────────────────────────────────────────── */
+.tb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  white-space: nowrap;
+}
+.tb-btn:active:not(:disabled) { transform: translateY(1px) scale(0.98); }
+.tb-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.tb-ghost { background: transparent; color: #cfe0d4; border-color: rgba(139, 163, 148, 0.3); }
+.tb-ghost:hover:not(:disabled) { background: rgba(255, 255, 255, 0.07); border-color: rgba(139, 163, 148, 0.55); }
+
+.tb-soft { background: #26382e; color: #dcebe0; border-color: #35503f; }
+.tb-soft:hover:not(:disabled) { background: #2e4437; border-color: #456551; }
+
+.tb-danger:hover:not(:disabled) { border-color: rgba(207, 92, 70, 0.7); color: #f2a193; background: rgba(207, 92, 70, 0.12); }
+
+.tb-primary {
+  background: linear-gradient(180deg, #3ecf7a, #23a058);
+  color: #0c1f14;
+  font-weight: 800;
+  box-shadow: 0 2px 10px rgba(62, 207, 122, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.tb-primary:hover:not(:disabled) { filter: brightness(1.07); box-shadow: 0 4px 16px rgba(62, 207, 122, 0.45), inset 0 1px 0 rgba(255,255,255,0.35); }
+
+/* ── Печать ────────────────────────────────────────────────── */
+@media print {
+  .no-print { display: none !important; }
+  html, body { background: #ffffff !important; margin: 0; padding: 0; }
+  @page { margin: 0; }
+  .print-sheet {
+    page-break-after: always;
+    break-after: page;
+    display: flex;
+    justify-content: center;
+  }
+  .print-sheet:last-child { page-break-after: auto; break-after: auto; }
+}
