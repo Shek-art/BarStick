@@ -16,8 +16,32 @@ import MediaModal from "./components/MediaModal";
 import Lightbox from "./components/Lightbox";
 import { TitleBar, StatusBar, Toasts } from "./components/Chrome";
 import DownloadMenu from "./components/DownloadMenu";
+import ListChecker from "./components/ListChecker";
 import { useInstallPrompt } from "./hooks/useInstallPrompt";
-import { IconPrint, IconPdf, IconZip, IconReset, IconSpark, IconSettings, IconX } from "./components/icons";
+import {
+  IconPrint, IconPdf, IconZip, IconReset, IconSpark, IconSettings, IconX,
+  IconTag, IconClipboardCheck,
+} from "./components/icons";
+
+type Tab = "labels" | "checker";
+
+function TabBtn({ active, onClick, icon, label, badge }: {
+  active: boolean; onClick: () => void; icon: React.ReactNode; label: string; badge?: number;
+}) {
+  return (
+    <button className={`tab-btn ${active ? "active" : ""}`} onClick={onClick} title={label}>
+      {icon}
+      {label}
+      {badge !== undefined && badge > 0 && (
+        <span className={`font-mono text-[10px] font-bold rounded-full px-1.5 py-px leading-tight border ${
+          active ? "bg-lime-glow/15 text-lime-glow border-lime-glow/30" : "bg-white/8 text-ink-300 border-white/10"
+        }`}>
+          {badge}
+        </span>
+      )}
+    </button>
+  );
+}
 
 const K_FIELDS = "nkl4k:fields";
 const K_SAME = "nkl4k:same";
@@ -64,6 +88,15 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [mediaModal, setMediaModal] = useState<MediaKind | null>(null);
   const [lightbox, setLightbox] = useState<number | null>(null);
+
+  const [tab, setTab] = useState<Tab>(() => (localStorage.getItem("nkl4k:tab") === "checker" ? "checker" : "labels"));
+  const [checkerStats, setCheckerStats] = useState<{ lists: number; lines: number; passed: boolean | null }>({
+    lists: 0, lines: 0, passed: null,
+  });
+
+  useEffect(() => {
+    localStorage.setItem("nkl4k:tab", tab);
+  }, [tab]);
 
   const exportRefs = useRef<(HTMLDivElement | null)[]>([]);
   const cancelRef = useRef<CancelToken | null>(null);
@@ -329,7 +362,26 @@ export default function App() {
     <div className="h-screen flex flex-col overflow-hidden bg-ink-900 font-body">
       <TitleBar onWinButton={handleWinButton} />
 
-      {/* ── Тулбар ── */}
+      {/* ── Вкладки модулей ── */}
+      <div className="no-print h-10 bg-ink-900 border-b border-white/8 flex items-stretch px-3 shrink-0">
+        <TabBtn
+          active={tab === "labels"}
+          onClick={() => setTab("labels")}
+          icon={<IconTag size={14} />}
+          label="Наклейки"
+          badge={labels.length}
+        />
+        <TabBtn
+          active={tab === "checker"}
+          onClick={() => setTab("checker")}
+          icon={<IconClipboardCheck size={14} />}
+          label="Проверка списков"
+          badge={checkerStats.lists}
+        />
+      </div>
+
+      {/* ── Тулбар (модуль наклеек) ── */}
+      {tab === "labels" && (
       <div className="no-print bg-ink-800 dark-grid border-b border-white/8 shrink-0 relative">
         <div className="flex items-center justify-between px-3.5 py-2 gap-2 flex-wrap">
           <div className="flex items-center gap-1.5">
@@ -386,8 +438,14 @@ export default function App() {
           />
         </div>
       </div>
+      )}
 
       {/* ── Основная область ── */}
+      {tab === "checker" ? (
+        <main className="flex-1 overflow-y-auto nice-scroll workspace-bg">
+          <ListChecker onToast={toast} onStats={setCheckerStats} />
+        </main>
+      ) : (
       <div className="flex-1 flex overflow-hidden">
         <aside className="no-print w-[365px] shrink-0 bg-paper-2 border-r border-ink-200/60 overflow-y-auto nice-scroll p-4">
           <EditorPanel
@@ -417,6 +475,7 @@ export default function App() {
           />
         </main>
       </div>
+      )}
 
       <StatusBar
         uniqueCount={uniqueCount}
@@ -425,6 +484,8 @@ export default function App() {
         zoom={zoom}
         onZoom={(z) => setZoom(z)}
         labelSize={`${settings.width}×${settings.height}`}
+        mode={tab}
+        checker={checkerStats}
       />
 
       {/* ── Скрытый экспортный слой (полный размер) ── */}

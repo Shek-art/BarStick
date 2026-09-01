@@ -90,6 +90,58 @@ body {
 }
 .field-area::placeholder { color: #a3aca5; }
 
+.checker-area {
+  width: 100%;
+  border: 1px solid rgba(31, 42, 36, 0.18);
+  border-radius: 10px;
+  background: #fbfcfa;
+  padding: 10px 12px;
+  font-family: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #1f2a24;
+  outline: none;
+  resize: vertical;
+  transition: all 0.15s;
+}
+.checker-area:focus { border-color: #23a058; box-shadow: 0 0 0 3px rgba(30, 122, 72, 0.13); background: #fff; }
+
+/* ── Вкладки модулей ───────────────────────────────────────── */
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  padding: 0 16px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #8b9790;
+  border-bottom: 2px solid transparent;
+  transition: all 0.18s;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tab-btn:hover { color: #e8ede9; background: rgba(255, 255, 255, 0.04); }
+.tab-btn.active { color: #3ecf7a; border-bottom-color: #3ecf7a; background: rgba(62, 207, 122, 0.07); }
+
+.tb-btn-light {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(31, 42, 36, 0.2);
+  background: #fff;
+  border-radius: 9px;
+  padding: 8px 13px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #3a4740;
+  transition: all 0.15s;
+  cursor: pointer;
+}
+.tb-btn-light:hover:not(:disabled) { border-color: rgba(30, 122, 72, 0.55); color: #1e7a48; transform: translateY(-1px); box-shadow: 0 3px 10px rgba(10, 16, 12, 0.08); }
+.tb-btn-light:active:not(:disabled) { transform: scale(0.97); }
+.tb-btn-light:disabled { opacity: 0.4; cursor: not-allowed; }
+
 /* ── Кнопки тулбара ────────────────────────────────────────── */
 .tb-btn {
   display: inline-flex;

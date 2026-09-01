@@ -52,11 +52,13 @@ interface StatusBarProps {
   zoom: number;
   onZoom: (z: number) => void;
   labelSize?: string;
+  mode?: "labels" | "checker";
+  checker?: { lists: number; lines: number; passed: boolean | null };
 }
 
 const ZOOM_STEPS = [0.4, 0.55, 0.7, 0.85, 1];
 
-export function StatusBar({ uniqueCount, totalCount, saveState, zoom, onZoom, labelSize }: StatusBarProps) {
+export function StatusBar({ uniqueCount, totalCount, saveState, zoom, onZoom, labelSize, mode = "labels", checker }: StatusBarProps) {
   const zi = ZOOM_STEPS.indexOf(zoom);
   return (
     <div className="no-print h-9 bg-ink-900 border-t border-white/8 flex items-center justify-between px-3.5 text-[11px] shrink-0 select-none">
@@ -78,17 +80,41 @@ export function StatusBar({ uniqueCount, totalCount, saveState, zoom, onZoom, la
         )}
       </div>
 
-      <div className="flex items-center gap-2">
-        <span className="font-mono text-[10.5px] font-bold text-ink-200 bg-white/6 rounded-md px-2 py-0.5">
-          позиций <span className="text-lime-glow">{uniqueCount}</span>
-        </span>
-        <span className="font-mono text-[10.5px] font-bold text-ink-200 bg-white/6 rounded-md px-2 py-0.5">
-          наклеек <span className="text-lime-glow">{totalCount}</span>
-        </span>
-      </div>
+      {mode === "labels" ? (
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[10.5px] font-bold text-ink-200 bg-white/6 rounded-md px-2 py-0.5">
+            позиций <span className="text-lime-glow">{uniqueCount}</span>
+          </span>
+          <span className="font-mono text-[10.5px] font-bold text-ink-200 bg-white/6 rounded-md px-2 py-0.5">
+            наклеек <span className="text-lime-glow">{totalCount}</span>
+          </span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[10.5px] font-bold text-ink-200 bg-white/6 rounded-md px-2 py-0.5">
+            списков <span className="text-lime-glow">{checker?.lists ?? 0}</span>
+          </span>
+          <span className="font-mono text-[10.5px] font-bold text-ink-200 bg-white/6 rounded-md px-2 py-0.5">
+            строк <span className="text-lime-glow">{checker?.lines ?? 0}</span>
+          </span>
+          {checker?.passed !== null && checker?.passed !== undefined && (
+            <span className={`font-mono text-[10px] font-bold rounded-md px-2 py-0.5 ${
+              checker.passed ? "bg-lime-glow/15 text-lime-glow" : "bg-rust/20 text-rust"
+            }`}>
+              {checker.passed ? "✓ проверки пройдены" : "✗ есть проблемы"}
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="flex items-center gap-3">
-        <span className="hidden lg:block text-ink-500 font-mono text-[10px]">Ctrl+Enter — печать</span>
+        {mode === "labels" && (
+          <span className="hidden lg:block text-ink-500 font-mono text-[10px]">Ctrl+Enter — печать</span>
+        )}
+        {mode === "checker" && (
+          <span className="hidden lg:block text-ink-500 font-mono text-[10px]">TXT / CSV · до 3 списков</span>
+        )}
+        {mode === "labels" && (
         <div className="flex items-center rounded-lg border border-white/10 overflow-hidden">
           <button
             className="w-7 h-6 flex items-center justify-center text-ink-300 hover:bg-white/10 hover:text-paper transition-colors disabled:opacity-30 cursor-pointer"
@@ -110,6 +136,7 @@ export function StatusBar({ uniqueCount, totalCount, saveState, zoom, onZoom, la
             <IconPlus size={12} />
           </button>
         </div>
+        )}
       </div>
     </div>
   );

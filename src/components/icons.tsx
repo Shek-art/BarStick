@@ -195,6 +195,28 @@ export const IconFit = (p: P) => (
   </svg>
 );
 
+export const IconClipboardCheck = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+    <rect x="9" y="3" width="6" height="4" rx="1" />
+    <path d="M9 14l2 2 4-4" />
+  </svg>
+);
+
+export const IconTag = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+    <circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+export const IconFileText = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <path d="M14 2v6h6M9 13h6M9 17h6" />
+  </svg>
+);
+
 /** Фирменный знак «4K» */
 export function LogoMark({ size = 30 }: { size?: number }) {
   return (
