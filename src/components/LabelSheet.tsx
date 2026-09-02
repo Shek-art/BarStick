@@ -64,6 +64,7 @@ function FitText({ text, baseSize, maxHeight, weight = 400, letterSpacing, color
           : {
               display: "block",
               maxWidth: "100%",
+              textAlign: "center",
               overflowWrap: "anywhere",
               wordBreak: "break-word",
               fontWeight: weight,
