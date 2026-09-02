@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
+import { toCanvas } from "html-to-image";
 import type { LabelData } from "../types";
 
 export interface ExportSize {
@@ -29,18 +29,22 @@ export function stickerFileName(label: LabelData): string {
   return `${pad2(label.uniqueIndex)}-${pad2(label.copyIndex)}_${code}`;
 }
 
+/**
+ * Захват наклейки в canvas.
+ * Используется html-to-image (SVG foreignObject): элемент отрисовывается
+ * самим браузером, поэтому текст и вёрстка совпадают с экраном пиксель в
+ * пиксель — в отличие от html2canvas, который рисует текст собственными
+ * эвристиками и «роняет» строки вниз.
+ */
 async function captureLabel(el: HTMLElement, size: ExportSize): Promise<HTMLCanvasElement> {
   try {
-    return await html2canvas(el, {
-      scale: 1.5,
-      useCORS: true,
-      allowTaint: false,
-      backgroundColor: "#ffffff",
-      logging: false,
+    return await toCanvas(el, {
       width: size.w,
       height: size.h,
-      scrollX: 0,
-      scrollY: 0,
+      pixelRatio: 1.5,
+      backgroundColor: "#ffffff",
+      skipFonts: true,
+      cacheBust: false,
     });
   } catch (err) {
     console.warn("Не удалось отрисовать наклейку, используется заглушка:", err);

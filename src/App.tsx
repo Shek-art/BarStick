@@ -7,7 +7,7 @@ import { normalizeEan13, generateBarcodeDataUrl } from "./lib/barcode";
 import { exportZip, exportPdf, ExportCancelled, type CancelToken } from "./lib/exporters";
 import { loadSettings, saveSettings, DEFAULT_SETTINGS } from "./lib/settings";
 import { processImageFile, fileToDataUrl } from "./lib/images";
-import { DEMO_FIELDS, DEMO_IMAGES } from "./lib/demo";
+import { DEMO_FIELDS, resolveDemoImages } from "./lib/demo";
 import LabelSheet from "./components/LabelSheet";
 import Workspace from "./components/Workspace";
 import EditorPanel from "./components/EditorPanel";
@@ -326,11 +326,12 @@ export default function App() {
     toast("Все данные сброшены", "info");
   }, [toast]);
 
-  const handleDemo = useCallback(() => {
+  const handleDemo = useCallback(async () => {
     setFields(DEMO_FIELDS);
     setSame({ order: true, material: true, quantity: false });
-    setImages(DEMO_IMAGES);
     setBarcodeUploads([]);
+    /* Демо-фото переводятся в dataURL, чтобы экспорт не зависел от CORS */
+    setImages(await resolveDemoImages());
     toast("Демо-данные загружены — 3 наклейки (2 + 1)", "success");
   }, [toast]);
 
