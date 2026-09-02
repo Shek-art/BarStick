@@ -1,16 +1,35 @@
-import html2canvas from "html2canvas";
 import JSZip from "jszip";
 import { jsPDF } from "jspdf";
+import html2canvas from "html2canvas";
 import type { LabelData } from "../types";
 
-export const LABEL_W = 500;
-export const LABEL_H = 850;
-
-export function sanitizeFileName(s: string): string {
-  return s.replace(/[\\/:*?"<>|\s]+/g, "_").slice(0, 40) || "nkl";
+export interface ExportSize {
+  w: number;
+  h: number;
 }
 
-async function captureLabel(el: HTMLElement): Promise<HTMLCanvasElement> {
+export interface CancelToken {
+  cancelled: boolean;
+}
+
+export class ExportCancelled extends Error {
+  constructor() {
+    super("Экспорт остановлен");
+  }
+}
+
+const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+export function pad2(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+export function stickerFileName(label: LabelData): string {
+  const code = (label.code || "nakleyka").replace(/[\\/:*?"<>|\s]+/g, "_");
+  return `${pad2(label.uniqueIndex)}-${pad2(label.copyIndex)}_${code}`;
+}
+
+async function captureLabel(el: HTMLElement, size: ExportSize): Promise<HTMLCanvasElement> {
   try {
     return await html2canvas(el, {
       scale: 1.5,
@@ -18,14 +37,14 @@ async function captureLabel(el: HTMLElement): Promise<HTMLCanvasElement> {
       allowTaint: false,
       backgroundColor: "#ffffff",
       logging: false,
-      width: LABEL_W,
-      height: LABEL_H,
+      width: size.w,
+      height: size.h,
     });
   } catch (err) {
     console.warn("Не удалось отрисовать наклейку, используется заглушка:", err);
     const canvas = document.createElement("canvas");
-    canvas.width = LABEL_W * 1.5;
-    canvas.height = LABEL_H * 1.5;
+    canvas.width = size.w * 1.5;
+    canvas.height = size.h * 1.5;
     const ctx = canvas.getContext("2d");
     if (ctx) {
       ctx.fillStyle = "#ffffff";
@@ -42,73 +61,80 @@ async function captureLabel(el: HTMLElement): Promise<HTMLCanvasElement> {
   }
 }
 
-async function processInChunks<T>(
-  items: T[],
-  chunkSize: number,
-  fn: (item: T, index: number) => Promise<void>,
-  onProgress: (pct: number) => void
-): Promise<void> {
-  for (let i = 0; i < items.length; i += chunkSize) {
-    const chunk = items.slice(i, i + chunkSize);
-    await Promise.all(chunk.map((item, j) => fn(item, i + j)));
-    onProgress(Math.round(((i + chunk.length) / items.length) * 100));
-  }
-}
-
-export async function exportZip(
-  labels: LabelData[],
-  getEl: (i: number) => HTMLElement | null,
-  onProgress: (pct: number) => void
-): Promise<void> {
-  const zip = new JSZip();
-  await processInChunks(
-    labels,
-    4,
-    async (label, i) => {
-      const el = getEl(i);
-      if (!el) return;
-      const canvas = await captureLabel(el);
-      const base64 = canvas.toDataURL("image/jpeg", 0.88).split(",")[1];
-      const file = `${label.uniqueIndex}-${label.copyIndex}_${sanitizeFileName(label.code)}.jpg`;
-      zip.file(file, base64, { base64: true });
-    },
-    onProgress
-  );
-  const blob = await zip.generateAsync({ type: "blob" });
-  triggerDownload(URL.createObjectURL(blob), `nakleyki_4k_${Date.now()}.zip`);
-}
-
-export async function exportPdf(
-  labels: LabelData[],
-  getEl: (i: number) => HTMLElement | null,
-  onProgress: (pct: number) => void
-): Promise<void> {
-  const pdf = new jsPDF({ orientation: "portrait", unit: "px", format: [LABEL_W, LABEL_H], compress: true });
-  const pages: string[] = [];
-  await processInChunks(
-    labels,
-    4,
-    async (_label, i) => {
-      const el = getEl(i);
-      if (!el) return;
-      const canvas = await captureLabel(el);
-      pages[i] = canvas.toDataURL("image/jpeg", 0.85);
-    },
-    onProgress
-  );
-  pages.forEach((img, i) => {
-    if (i > 0) pdf.addPage([LABEL_W, LABEL_H], "portrait");
-    if (img) pdf.addImage(img, "JPEG", 0, 0, LABEL_W, LABEL_H);
-  });
-  pdf.save(`nakleyki_4k_${Date.now()}.pdf`);
-}
-
-function triggerDownload(href: string, filename: string) {
+function triggerDownload(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = href;
+  a.href = url;
   a.download = filename;
   document.body.appendChild(a);
   a.click();
   a.remove();
-  setTimeout(() => URL.revokeObjectURL(href), 4000);
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+/** Экспорт всех наклеек в ZIP из JPG (масштаб 1.5×) */
+export async function exportZip(
+  labels: LabelData[],
+  getElement: (i: number) => HTMLElement | null,
+  size: ExportSize,
+  onProgress: (pct: number) => void,
+  token: CancelToken
+): Promise<void> {
+  const zip = new JSZip();
+
+  for (let i = 0; i < labels.length; i++) {
+    if (token.cancelled) throw new ExportCancelled();
+    const el = getElement(i);
+    if (el) {
+      const canvas = await captureLabel(el, size);
+      const data = canvas.toDataURL("image/jpeg", 0.85).split(",")[1];
+      zip.file(`${stickerFileName(labels[i])}.jpg`, data, { base64: true });
+    }
+    onProgress(Math.round(((i + 1) / labels.length) * 92));
+    await nextFrame();
+  }
+
+  if (token.cancelled) throw new ExportCancelled();
+  onProgress(96);
+  const blob = await zip.generateAsync({ type: "blob" });
+  triggerDownload(blob, `nakleyki_4k_${Date.now()}.zip`);
+  onProgress(100);
+}
+
+/** Экспорт всех наклеек в PDF (одна наклейка = одна страница) */
+export async function exportPdf(
+  labels: LabelData[],
+  getElement: (i: number) => HTMLElement | null,
+  size: ExportSize,
+  onProgress: (pct: number) => void,
+  token: CancelToken
+): Promise<void> {
+  const orientation = size.h >= size.w ? "p" : "l";
+  const pdf = new jsPDF({
+    orientation,
+    unit: "px",
+    format: [size.w, size.h],
+    hotfixes: ["px_scaling"],
+  });
+
+  const images: string[] = [];
+  for (let i = 0; i < labels.length; i++) {
+    if (token.cancelled) throw new ExportCancelled();
+    const el = getElement(i);
+    images.push(el ? (await captureLabel(el, size)).toDataURL("image/jpeg", 0.85) : "");
+    onProgress(Math.round(((i + 1) / labels.length) * 90));
+    await nextFrame();
+  }
+
+  if (token.cancelled) throw new ExportCancelled();
+  onProgress(95);
+
+  images.forEach((img, i) => {
+    if (!img) return;
+    if (i > 0) pdf.addPage([size.w, size.h], orientation);
+    pdf.addImage(img, "JPEG", 0, 0, size.w, size.h);
+  });
+
+  pdf.save(`nakleyki_4k_${Date.now()}.pdf`);
+  onProgress(100);
 }

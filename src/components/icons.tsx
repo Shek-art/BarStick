@@ -126,9 +126,94 @@ export const IconInfo = (p: P) => (
   </svg>
 );
 
-export const IconLayers = (p: P) => (
+export const IconSettings = (p: P) => (
   <svg {...base(p)}>
-    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+
+export const IconDownload = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+  </svg>
+);
+
+export const IconEye = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+export const IconTrash = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+  </svg>
+);
+
+export const IconReplace = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M23 4v6h-6M1 20v-6h6" />
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+  </svg>
+);
+
+export const IconArrowUp = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 19V5M5 12l7-7 7 7" />
+  </svg>
+);
+
+export const IconArrowDown = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 5v14M19 12l-7 7-7-7" />
+  </svg>
+);
+
+export const IconExpand = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+  </svg>
+);
+
+export const IconChevronLeft = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M15 18l-6-6 6-6" />
+  </svg>
+);
+
+export const IconChevronRight = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M9 18l6-6-6-6" />
+  </svg>
+);
+
+export const IconFit = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+  </svg>
+);
+
+export const IconClipboardCheck = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+    <rect x="9" y="3" width="6" height="4" rx="1" />
+    <path d="M9 14l2 2 4-4" />
+  </svg>
+);
+
+export const IconTag = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+    <circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none" />
+  </svg>
+);
+
+export const IconFileText = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <path d="M14 2v6h6M9 13h6M9 17h6" />
   </svg>
 );
 
@@ -148,22 +233,6 @@ export function LogoMark({ size = 30 }: { size?: number }) {
           <rect x="305" y="216" width="10" height="104" />
         </g>
       </g>
-    </svg>
-  );
-}
-
-/** Логотип поставщика внутри печатной наклейки */
-export function SupplierLogo() {
-  return (
-    <svg width="130" height="34" viewBox="0 0 130 34" aria-hidden>
-      <rect x="0" y="2" width="30" height="30" rx="7" fill="#1E7A48" />
-      <text x="15" y="24" textAnchor="middle" fontFamily="Arial Black, Arial, sans-serif" fontWeight="900" fontSize="15" fill="#ffffff">
-        4K
-      </text>
-      <text x="38" y="24" fontFamily="Arial, sans-serif" fontWeight="700" fontSize="19" fill="#1E7A48">
-        green
-      </text>
-      <rect x="38" y="27" width="52" height="3" rx="1.5" fill="#3ECF7A" />
     </svg>
   );
 }

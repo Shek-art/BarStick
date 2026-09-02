@@ -15,12 +15,6 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
-    },
-    {
-      "src": "https://image.qwenlm.ai/generated-images/2a69144c-bebe-46af-a9e1-d936bcb95da2/_result.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
     }
   ]
 }

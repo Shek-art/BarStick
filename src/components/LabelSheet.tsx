@@ -1,7 +1,85 @@
-import type { LabelData } from "../types";
-import { LABEL_W, LABEL_H } from "../lib/exporters";
+import { useLayoutEffect, useRef } from "react";
+import type { LabelData, LabelSettings, RowKey } from "../types";
+import { isDarkColor } from "../lib/settings";
 
-/** Логотип поставщика (чистый HTML — гарантированно корректный рендер при экспорте) */
+interface FitTextProps {
+  text: string;
+  baseSize: number;
+  maxHeight: number;
+  weight?: number;
+  letterSpacing?: string;
+  color?: string;
+  lineHeight?: number;
+  fontFamily?: string;
+  /** Всегда в одну строку: перенос запрещён, кегль уменьшается по ширине */
+  nowrap?: boolean;
+}
+
+/**
+ * Текст ячейки наклейки с гарантированным переносом строк:
+ * 1) длинные слова и строки без пробелов разбиваются (overflow-wrap);
+ * 2) если перенесённый текст всё равно выше ячейки — кегль автоматически
+ *    уменьшается (бинарный поиск), пока всё содержимое не станет видимым.
+ */
+function FitText({ text, baseSize, maxHeight, weight = 400, letterSpacing, color, lineHeight = 1.22, fontFamily, nowrap }: FitTextProps) {
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fits = () =>
+      el.scrollHeight <= maxHeight + 1 && (!nowrap || el.scrollWidth <= el.clientWidth + 1);
+
+    const MIN = 7.5;
+    let lo = MIN;
+    let hi = baseSize;
+    el.style.fontSize = `${hi}px`;
+    if (fits()) return; // помещается сразу
+
+    while (hi - lo > 0.4) {
+      const mid = (lo + hi) / 2;
+      el.style.fontSize = `${mid}px`;
+      if (fits()) lo = mid;
+      else hi = mid;
+    }
+    el.style.fontSize = `${lo}px`;
+  }, [text, baseSize, maxHeight, lineHeight, fontFamily, nowrap]);
+
+  return (
+    <span
+      ref={ref}
+      style={
+        nowrap
+          ? {
+              display: "block",
+              width: "100%",
+              whiteSpace: "nowrap",
+              textAlign: "center",
+              overflow: "hidden",
+              fontWeight: weight,
+              letterSpacing,
+              color,
+              lineHeight,
+            }
+          : {
+              display: "block",
+              maxWidth: "100%",
+              textAlign: "center",
+              overflowWrap: "anywhere",
+              wordBreak: "break-word",
+              fontWeight: weight,
+              letterSpacing,
+              color,
+              lineHeight,
+            }
+      }
+    >
+      {text}
+    </span>
+  );
+}
+
+/** Логотип поставщика по умолчанию (чистый HTML — надёжный рендер при экспорте) */
 function SupplierLogoHtml() {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -24,126 +102,170 @@ function SupplierLogoHtml() {
   );
 }
 
-const LABEL_FONT = 'Arial, "Helvetica Neue", Helvetica, sans-serif';
-
-interface RowProps {
+interface RowDef {
+  key: string;
   h: number;
+  bg: string;
+  titleColor: string;
   title: React.ReactNode;
-  children: React.ReactNode;
-  last?: boolean;
-  bg?: string;
-}
-
-/** Строка таблицы наклейки: подпись слева (1/3), значение справа (2/3) */
-function Row({ h, title, children, last, bg = "#ffffff" }: RowProps) {
-  return (
-    <div
-      style={{ height: h, background: bg, borderBottom: last ? "none" : "2px solid #000" }}
-      className="flex w-full"
-    >
-      <div
-        className="flex items-center justify-center text-center leading-tight"
-        style={{ width: "33.4%", borderRight: "2px solid #000", padding: "4px 6px", fontSize: 13.5, background: bg }}
-      >
-        {title}
-      </div>
-      <div className="flex items-center justify-center text-center overflow-hidden" style={{ width: "66.6%", padding: "4px 8px", background: bg }}>
-        {children}
-      </div>
-    </div>
-  );
+  value: React.ReactNode;
 }
 
 /**
- * Печатная наклейка 500 × 850 px. Рендерится идентично в предпросмотре,
- * в скрытом экспортном слое и в зоне печати.
+ * Печатная наклейка. Все параметры (размер, шрифт, ячейки, цвета, графы)
+ * управляются настройками. Рендер идентичен в предпросмотре, экспорте и печати.
  */
-export default function LabelSheet({ data }: { data: LabelData }) {
+export default function LabelSheet({ data, settings }: { data: LabelData; settings: LabelSettings }) {
+  const fs = settings.fontSize;
+  const bw = settings.borderWidth;
+  const bc = settings.borderColor;
+  const headerDark = isDarkColor(settings.headerBg);
+  const headerText = headerDark ? "#ffffff" : "#000000";
+  const R = settings.rows;
+  const ff = settings.fontFamily;
+
+  /* ── Формируем список видимых ячеек ── */
+  const rows: RowDef[] = [];
+  let zebraTick = 0;
+  const bodyBg = () => {
+    if (!settings.zebra) return "#ffffff";
+    zebraTick += 1;
+    return zebraTick % 2 === 0 ? "#f3f4f0" : "#ffffff";
+  };
+
+  const add = (key: RowKey, title: React.ReactNode, value: React.ReactNode) => {
+    if (!R[key].visible) return;
+    rows.push({
+      key,
+      h: R[key].height,
+      bg: key === "supplier" ? settings.headerBg : bodyBg(),
+      titleColor: key === "supplier" ? headerText : "#000000",
+      title,
+      value,
+    });
+  };
+
+  add("supplier", "Поставщик",
+    settings.showLogo
+      ? settings.logo
+        ? <img src={settings.logo} alt="Логотип" style={{ maxHeight: Math.max(16, R.supplier.height - 16), maxWidth: "92%", objectFit: "contain" }} />
+        : <SupplierLogoHtml />
+      : <span style={{ color: "#bbb", fontSize: fs }}>—</span>
+  );
+
+  add("name", "Наименование товара",
+    <FitText text={data.name || "-"} baseSize={fs} maxHeight={R.name.height - 8} weight={600} lineHeight={1.25} fontFamily={ff} />
+  );
+
+  add("file", "Файл",
+    <FitText text={data.file || "-"} baseSize={fs * 0.88} maxHeight={R.file.height - 8} color="#444" fontFamily={ff} />
+  );
+
+  add("order", "Заказ",
+    <FitText text={data.order || "-"} baseSize={fs * 0.88} maxHeight={R.order.height - 8} fontFamily={ff} />
+  );
+
+  add("material", "Материал:",
+    <FitText text={data.material || "-"} baseSize={fs} maxHeight={R.material.height - 8} fontFamily={ff} />
+  );
+
+  add("code", "Код товара",
+    <FitText text={data.code || "-"} baseSize={fs * 1.18} maxHeight={R.code.height - 8} weight={700} letterSpacing="0.06em" fontFamily={ff} />
+  );
+
+  add("quantity", <>Количество штук<br />в упаковке</>,
+    <FitText text={data.quantity || "-"} baseSize={fs * 2.3} maxHeight={R.quantity.height - 8} weight={700} lineHeight={1} nowrap fontFamily={ff} />
+  );
+
+  /* Свои графы — между количеством и штрихкодом */
+  for (const f of settings.customFields) {
+    rows.push({
+      key: `cf-${f.id}`,
+      h: 40,
+      bg: settings.zebra ? bodyBg() : "#ffffff",
+      titleColor: "#000000",
+      title: f.title,
+      value: <FitText text={data.custom[f.id] || "-"} baseSize={fs * 0.92} maxHeight={32} fontFamily={ff} />,
+    });
+  }
+
+  add("barcode", <>Штрих код<br />EAN-13</>,
+    data.barcodeImage ? (
+      <img src={data.barcodeImage} alt="Штрихкод" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+    ) : data.barcodeState === "error" ? (
+      <span style={{ fontSize: fs * 0.85, color: "#c0392b", fontWeight: 700, padding: "0 8px" }}>
+        Ошибка: некорректный EAN-13
+      </span>
+    ) : (
+      <span style={{ fontSize: fs * 0.85, color: "#999", fontStyle: "italic" }}>Штрихкод не задан</span>
+    )
+  );
+
   return (
     <div
       style={{
-        width: LABEL_W,
-        height: LABEL_H,
+        width: settings.width,
+        height: settings.height,
         boxSizing: "border-box",
-        border: "2px solid #000",
+        border: `${bw}px solid ${bc}`,
         background: "#fff",
-        fontFamily: LABEL_FONT,
+        fontFamily: `'${settings.fontFamily}', Arial, sans-serif`,
         color: "#000",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
       }}
     >
-      {/* Поставщик */}
-      <Row h={60} title="Поставщик" bg="#f2f7ec">
-        <SupplierLogoHtml />
-      </Row>
+      {rows.map((row) => (
+        <div
+          key={row.key}
+          style={{
+            height: row.h,
+            background: row.bg,
+            borderBottom: `${bw}px solid ${bc}`,
+          }}
+          className="flex w-full shrink-0"
+        >
+          <div
+            className="flex items-center justify-center text-center"
+            style={{
+              width: "33.4%",
+              borderRight: `${bw}px solid ${bc}`,
+              padding: "4px 6px",
+              fontSize: fs,
+              lineHeight: 1.2,
+              color: row.titleColor,
+              background: row.bg,
+              overflowWrap: "anywhere",
+              wordBreak: "break-word",
+              minWidth: 0,
+            }}
+          >
+            {row.title}
+          </div>
+          <div
+            className="flex items-center justify-center overflow-hidden"
+            style={{ flex: 1, padding: "4px 8px", background: row.bg }}
+          >
+            {row.value}
+          </div>
+        </div>
+      ))}
 
-      {/* Наименование */}
-      <Row h={70} title="Наименование товара">
-        <span style={{ fontSize: 13.5, fontWeight: 600, lineHeight: 1.25 }}>{data.name || "-"}</span>
-      </Row>
-
-      {/* Файл */}
-      <Row h={40} title="Файл">
-        <span style={{ fontSize: 12, color: "#444", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {data.file || "-"}
-        </span>
-      </Row>
-
-      {/* Заказ */}
-      <Row h={40} title="Заказ">
-        <span style={{ fontSize: 12, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {data.order || "-"}
-        </span>
-      </Row>
-
-      {/* Материал */}
-      <Row h={40} title="Материал:">
-        <span style={{ fontSize: 13.5, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {data.material || "-"}
-        </span>
-      </Row>
-
-      {/* Код товара */}
-      <Row h={50} title="Код товара">
-        <span style={{ fontSize: 16, fontWeight: 700, letterSpacing: "0.06em" }}>{data.code || "-"}</span>
-      </Row>
-
-      {/* Количество */}
-      <Row h={70} title={<>Количество штук<br />в упаковке</>}>
-        <span style={{ fontSize: 31, fontWeight: 700, lineHeight: 1 }}>{data.quantity || "-"}</span>
-      </Row>
-
-      {/* Штрихкод */}
-      <Row h={160} last title={<>Штрих код<br />EAN-13</>}>
-        {data.barcodeImage ? (
-          <img
-            src={data.barcodeImage}
-            alt="Штрихкод"
-            style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
-          />
-        ) : data.barcodeState === "error" ? (
-          <span style={{ fontSize: 12, color: "#c0392b", fontWeight: 700, padding: "0 8px" }}>
-            Ошибка: некорректный EAN-13
-          </span>
-        ) : (
-          <span style={{ fontSize: 12, color: "#999", fontStyle: "italic" }}>Штрихкод не задан</span>
-        )}
-      </Row>
-
-      {/* Изображение товара */}
-      <div className="flex items-center justify-center overflow-hidden" style={{ flex: 1, minHeight: 0, padding: 16, background: "#fff" }}>
+      {/* Изображение товара — оставшееся место */}
+      <div
+        className="flex items-center justify-center overflow-hidden"
+        style={{ flex: 1, minHeight: 0, padding: Math.max(8, fs), background: "#fff" }}
+      >
         {data.image ? (
-          <img
-            src={data.image}
-            alt="Товар"
-            style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
-          />
+          <img src={data.image} alt="Товар" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
         ) : (
           <div
             className="flex items-center justify-center w-full h-full"
-            style={{ border: "1.5px dashed #d8d8d8", color: "#bbb", fontSize: 13, fontStyle: "italic", background: "#fafafa" }}
+            style={{
+              border: "1.5px dashed #d8d8d8", color: "#bbb",
+              fontSize: fs * 0.95, fontStyle: "italic", background: "#fafafa",
+            }}
           >
             Нет изображения
           </div>

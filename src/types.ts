@@ -17,7 +17,44 @@ export interface SameFlags {
   quantity: boolean;
 }
 
-export type BarcodeState = "none" | "ok" | "error";
+/* ── Настройки наклейки ─────────────────────────────────── */
+
+export type RowKey =
+  | "supplier"
+  | "name"
+  | "file"
+  | "order"
+  | "material"
+  | "code"
+  | "quantity"
+  | "barcode";
+
+export interface RowConfig {
+  visible: boolean;
+  height: number;
+}
+
+export interface CustomField {
+  id: string;
+  title: string;
+}
+
+export interface LabelSettings {
+  logo: string | null;
+  showLogo: boolean;
+  width: number;
+  height: number;
+  fontFamily: string;
+  fontSize: number;
+  borderWidth: number;
+  borderColor: string;
+  headerBg: string;
+  zebra: boolean;
+  rows: Record<RowKey, RowConfig>;
+  customFields: CustomField[];
+}
+
+/* ── Данные наклейки ────────────────────────────────────── */
 
 export interface LabelData {
   name: string;
@@ -27,23 +64,28 @@ export interface LabelData {
   code: string;
   quantity: string;
   barcodeText: string;
-  barcodeState: BarcodeState;
+  barcodeState: "ok" | "error" | "none";
   barcodeImage: string | null;
   image: string | null;
   uniqueIndex: number;
   copyIndex: number;
   totalCopies: number;
+  custom: Record<string, string>;
 }
+
+/* ── UI ─────────────────────────────────────────────────── */
 
 export type ToastKind = "success" | "error" | "info";
 
 export interface ToastItem {
   id: number;
-  kind: ToastKind;
   text: string;
+  kind: ToastKind;
 }
 
 export interface ExportProgress {
   pct: number;
   label: string;
 }
+
+export type MediaKind = "images" | "barcodes";

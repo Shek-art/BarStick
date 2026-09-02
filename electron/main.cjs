@@ -34,7 +34,6 @@ function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      // локальные файлы наклеек (objectURL/dataURL) работают без ограничений
       webSecurity: true,
     },
   });
