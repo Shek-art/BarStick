@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from "react";
+import { memo, useLayoutEffect, useRef } from "react";
 import type { LabelData, LabelSettings, RowKey } from "../types";
 import { isDarkColor } from "../lib/settings";
 
@@ -30,14 +30,19 @@ function FitText({ text, baseSize, maxHeight, weight = 400, letterSpacing, color
     const fits = () =>
       el.scrollHeight <= maxHeight + 1 && (!nowrap || el.scrollWidth <= el.clientWidth + 1);
 
+    /* Кегли кратны 0.5px: дробные значения дают дрейф базовой линии
+       при рендере html2canvas (текст смещался вниз в сохранённых файлах) */
+    const snap = (v: number) => Math.floor(v * 2) / 2;
+
     const MIN = 7.5;
     let lo = MIN;
-    let hi = baseSize;
+    let hi = snap(baseSize);
     el.style.fontSize = `${hi}px`;
     if (fits()) return; // помещается сразу
 
-    while (hi - lo > 0.4) {
-      const mid = (lo + hi) / 2;
+    while (hi - lo > 0.5) {
+      const mid = snap((lo + hi) / 2);
+      if (mid <= lo || mid >= hi) break;
       el.style.fontSize = `${mid}px`;
       if (fits()) lo = mid;
       else hi = mid;
@@ -115,7 +120,7 @@ interface RowDef {
  * Печатная наклейка. Все параметры (размер, шрифт, ячейки, цвета, графы)
  * управляются настройками. Рендер идентичен в предпросмотре, экспорте и печати.
  */
-export default function LabelSheet({ data, settings }: { data: LabelData; settings: LabelSettings }) {
+function LabelSheet({ data, settings }: { data: LabelData; settings: LabelSettings }) {
   const fs = settings.fontSize;
   const bw = settings.borderWidth;
   const bc = settings.borderColor;
@@ -274,3 +279,5 @@ export default function LabelSheet({ data, settings }: { data: LabelData; settin
     </div>
   );
 }
+
+export default memo(LabelSheet);

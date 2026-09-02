@@ -296,12 +296,22 @@ body {
 /* ── Печать ────────────────────────────────────────────────── */
 @media print {
   .no-print { display: none !important; }
-  html, body { background: #ffffff !important; margin: 0; padding: 0; }
+  html, body {
+    background: #ffffff !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  /* Размер страницы подставляется динамически из настроек (style в App);
+     здесь — страховочный ноль полей, чтобы текст не «съезжал» вниз */
   @page { margin: 0; }
   .print-sheet {
     page-break-after: always;
     display: flex;
     justify-content: center;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
   .print-sheet:last-child { page-break-after: auto; }
 }

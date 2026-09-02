@@ -498,6 +498,12 @@ export default function App() {
       </div>
 
       {/* ── Зона печати ── */}
+      {/* Размер страницы = размеру наклейки: иначе браузер подставит A4
+          с полями, и текст в сохранённом PDF сместится вниз */}
+      <style>{`@media print {
+        @page { size: ${settings.width}px ${settings.height}px; margin: 0; }
+        .print-sheet { width: ${settings.width}px; height: ${settings.height}px; }
+      }`}</style>
       <div className="hidden print:block">
         {labels.map((l, i) => (
           <div key={i} className="print-sheet">
