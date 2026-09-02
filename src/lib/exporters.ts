@@ -39,6 +39,8 @@ async function captureLabel(el: HTMLElement, size: ExportSize): Promise<HTMLCanv
       logging: false,
       width: size.w,
       height: size.h,
+      scrollX: 0,
+      scrollY: 0,
     });
   } catch (err) {
     console.warn("Не удалось отрисовать наклейку, используется заглушка:", err);
@@ -81,6 +83,7 @@ export async function exportZip(
   token: CancelToken
 ): Promise<void> {
   const zip = new JSZip();
+  let rendered = 0;
 
   for (let i = 0; i < labels.length; i++) {
     if (token.cancelled) throw new ExportCancelled();
@@ -89,12 +92,14 @@ export async function exportZip(
       const canvas = await captureLabel(el, size);
       const data = canvas.toDataURL("image/jpeg", 0.85).split(",")[1];
       zip.file(`${stickerFileName(labels[i])}.jpg`, data, { base64: true });
+      rendered++;
     }
     onProgress(Math.round(((i + 1) / labels.length) * 92));
     await nextFrame();
   }
 
   if (token.cancelled) throw new ExportCancelled();
+  if (rendered === 0) throw new Error("Не удалось отрисовать ни одной наклейки — попробуйте ещё раз");
   onProgress(96);
   const blob = await zip.generateAsync({ type: "blob" });
   triggerDownload(blob, `nakleyki_4k_${Date.now()}.zip`);
@@ -127,12 +132,16 @@ export async function exportPdf(
   }
 
   if (token.cancelled) throw new ExportCancelled();
+  const rendered = images.filter(Boolean).length;
+  if (rendered === 0) throw new Error("Не удалось отрисовать ни одной наклейки — попробуйте ещё раз");
   onProgress(95);
 
-  images.forEach((img, i) => {
+  let added = 0;
+  images.forEach((img) => {
     if (!img) return;
-    if (i > 0) pdf.addPage([size.w, size.h], orientation);
+    if (added > 0) pdf.addPage([size.w, size.h], orientation);
     pdf.addImage(img, "JPEG", 0, 0, size.w, size.h);
+    added++;
   });
 
   pdf.save(`nakleyki_4k_${Date.now()}.pdf`);

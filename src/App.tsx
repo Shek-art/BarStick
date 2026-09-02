@@ -98,7 +98,7 @@ export default function App() {
     localStorage.setItem("nkl4k:tab", tab);
   }, [tab]);
 
-  const exportRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const exportLayerRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<CancelToken | null>(null);
   const toastId = useRef(0);
   const firstSave = useRef(true);
@@ -262,17 +262,35 @@ export default function App() {
   };
 
   /* ── Действия ──────────────────────────────────────────── */
-  const getExportEl = useCallback((i: number) => exportRefs.current[i] ?? null, []);
+  /* Ищем элементы в скрытом экспортном слое по data-атрибуту —
+     это надёжнее callback-refs (нет гонок с перерендерами) */
+  const getExportEl = useCallback(
+    (i: number) =>
+      exportLayerRef.current?.querySelector<HTMLElement>(`[data-label-index="${i}"]`) ?? null,
+    []
+  );
 
   const runExport = useCallback(
     async (kind: "zip" | "pdf") => {
       if (labels.length === 0 || exporting) return;
       const token: CancelToken = { cancelled: false };
       cancelRef.current = token;
-      exportRefs.current = [];
       setExporting({ pct: 0, label: kind === "zip" ? "Рендер JPG" : "Рендер страниц" });
       const size = { w: settings.width, h: settings.height };
       try {
+        /* Двойной rAF: гарантируем, что экспортный слой отрисован и
+           улеглась вёрстка до захвата html2canvas */
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+        const available = labels.reduce((n, _, i) => n + (getExportEl(i) ? 1 : 0), 0);
+        if (available === 0) {
+          toast("Слой рендера недоступен. Переключитесь на вкладку «Наклейки» и попробуйте снова.", "error");
+          return;
+        }
+        if (available < labels.length) {
+          toast(`Внимание: ${labels.length - available} из ${labels.length} наклеек не найдены для рендера`, "info");
+        }
+
         if (kind === "zip") {
           await exportZip(labels, getExportEl, size, (pct) => setExporting({ pct, label: pct < 96 ? "Рендер JPG" : "Упаковка ZIP" }), token);
           toast(`ZIP готов — ${labels.length} наклеек`, "success");
@@ -285,7 +303,7 @@ export default function App() {
           toast("Экспорт остановлен", "info");
         } else {
           console.error(err);
-          toast("Ошибка экспорта. Попробуйте ещё раз.", "error");
+          toast(err instanceof Error && err.message ? err.message : "Ошибка экспорта. Попробуйте ещё раз.", "error");
         }
       } finally {
         cancelRef.current = null;
@@ -489,9 +507,14 @@ export default function App() {
       />
 
       {/* ── Скрытый экспортный слой (полный размер) ── */}
-      <div aria-hidden className="no-print fixed top-0 pointer-events-none" style={{ left: -settings.width - 400, width: settings.width }}>
+      <div
+        ref={exportLayerRef}
+        aria-hidden
+        className="no-print fixed top-0 pointer-events-none"
+        style={{ left: -settings.width - 400, width: settings.width }}
+      >
         {labels.map((l, i) => (
-          <div key={i} ref={(el) => { exportRefs.current[i] = el; }}>
+          <div key={i} data-label-index={i}>
             <LabelSheet data={l} settings={settings} />
           </div>
         ))}
