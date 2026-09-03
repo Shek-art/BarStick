@@ -110,27 +110,37 @@ export async function exportZip(
   onProgress(100);
 }
 
-/** Экспорт всех наклеек в PDF (одна наклейка = одна страница) */
+/** Размер страницы PDF в физических миллиметрах */
+export interface PdfSizeMm {
+  wMm: number;
+  hMm: number;
+}
+
+/**
+ * Экспорт всех наклеек в PDF (одна наклейка = одна страница).
+ * Страница задаётся в миллиметрах — PDF получается физически точного размера
+ * (например, 50×85 мм), изображение растягивается на страницу без потерь.
+ */
 export async function exportPdf(
   labels: LabelData[],
   getElement: (i: number) => HTMLElement | null,
-  size: ExportSize,
+  sizePx: ExportSize,
+  sizeMm: PdfSizeMm,
   onProgress: (pct: number) => void,
   token: CancelToken
 ): Promise<void> {
-  const orientation = size.h >= size.w ? "p" : "l";
+  const orientation = sizeMm.hMm >= sizeMm.wMm ? "p" : "l";
   const pdf = new jsPDF({
     orientation,
-    unit: "px",
-    format: [size.w, size.h],
-    hotfixes: ["px_scaling"],
+    unit: "mm",
+    format: [sizeMm.wMm, sizeMm.hMm],
   });
 
   const images: string[] = [];
   for (let i = 0; i < labels.length; i++) {
     if (token.cancelled) throw new ExportCancelled();
     const el = getElement(i);
-    images.push(el ? (await captureLabel(el, size)).toDataURL("image/jpeg", 0.85) : "");
+    images.push(el ? (await captureLabel(el, sizePx)).toDataURL("image/jpeg", 0.85) : "");
     onProgress(Math.round(((i + 1) / labels.length) * 90));
     await nextFrame();
   }
@@ -143,8 +153,8 @@ export async function exportPdf(
   let added = 0;
   images.forEach((img) => {
     if (!img) return;
-    if (added > 0) pdf.addPage([size.w, size.h], orientation);
-    pdf.addImage(img, "JPEG", 0, 0, size.w, size.h);
+    if (added > 0) pdf.addPage([sizeMm.wMm, sizeMm.hMm], orientation);
+    pdf.addImage(img, "JPEG", 0, 0, sizeMm.wMm, sizeMm.hMm);
     added++;
   });
 

@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import Modal from "./Modal";
 import type { LabelSettings, RowKey } from "../types";
 import {
-  DEFAULT_SETTINGS, SIZE_PRESETS, FONTS, BORDER_COLORS, HEADER_BGS, ROW_ORDER, ROW_TITLES,
+  DEFAULT_SETTINGS, MM_PRESETS, FONTS, BORDER_COLORS, HEADER_BGS, ROW_ORDER, ROW_TITLES,
 } from "../lib/settings";
 import { IconTrash, IconPlus, IconUpload, IconX } from "./icons";
 
@@ -137,41 +137,42 @@ export default function SettingsModal({ settings, onChange, onClose, onLogoFile,
 
         {/* ── Размер ── */}
         <section>
-          <SectionLabel>Размер наклейки</SectionLabel>
+          <SectionLabel>Размер наклейки, мм</SectionLabel>
           <div className="grid grid-cols-4 gap-2 mb-3">
-            {SIZE_PRESETS.map((p) => {
-              const active = s.width === p.w && s.height === p.h;
+            {MM_PRESETS.map((p) => {
+              const active = s.widthMm === p.w && s.heightMm === p.h;
               return (
                 <button
                   key={p.label}
                   className={`preset-chip ${active ? "active" : ""}`}
-                  onClick={() => { onChange({ width: p.w, height: p.h }); }}
+                  onClick={() => { onChange({ widthMm: p.w, heightMm: p.h }); }}
                 >
-                  <span className="font-mono">{p.label}</span>
+                  <span className="font-mono">{p.label} <span className="font-sans font-semibold text-[10px]">мм</span></span>
                   <small>{p.note}</small>
                 </button>
               );
             })}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <label className="flex items-center gap-2 text-[12px] font-semibold text-ink-600">
               Ширина
               <input
-                type="number" min={250} max={1400} value={s.width}
-                onChange={(e) => onChange({ width: Math.min(1400, Math.max(250, Number(e.target.value) || 250)) })}
-                className="set-input w-[92px]! font-mono"
+                type="number" min={20} max={150} step={1} value={s.widthMm}
+                onChange={(e) => onChange({ widthMm: Math.min(150, Math.max(20, Math.round(Number(e.target.value) || 20))) })}
+                className="set-input w-[86px]! font-mono"
               />
-              px
+              мм
             </label>
             <label className="flex items-center gap-2 text-[12px] font-semibold text-ink-600">
               Высота
               <input
-                type="number" min={350} max={1800} value={s.height}
-                onChange={(e) => onChange({ height: Math.min(1800, Math.max(350, Number(e.target.value) || 350)) })}
-                className="set-input w-[92px]! font-mono"
+                type="number" min={30} max={200} step={1} value={s.heightMm}
+                onChange={(e) => onChange({ heightMm: Math.min(200, Math.max(30, Math.round(Number(e.target.value) || 30))) })}
+                className="set-input w-[86px]! font-mono"
               />
-              px
+              мм
             </label>
+            <span className="text-[10.5px] text-ink-400">10 px на 1 мм при экспорте</span>
           </div>
         </section>
 
@@ -345,7 +346,7 @@ export default function SettingsModal({ settings, onChange, onClose, onLogoFile,
 
         <p className="text-[10.5px] text-ink-400 border-t border-ink-200/60 pt-3 flex items-center gap-2">
           <span className="font-mono font-bold text-moss-600">i</span>
-          Стандарт: {DEFAULT_SETTINGS.width}×{DEFAULT_SETTINGS.height}px · {DEFAULT_SETTINGS.fontFamily} · рамка {DEFAULT_SETTINGS.borderWidth}px
+          Стандарт: {DEFAULT_SETTINGS.widthMm}×{DEFAULT_SETTINGS.heightMm} мм · {DEFAULT_SETTINGS.fontFamily} · рамка {DEFAULT_SETTINGS.borderWidth}px
         </p>
       </div>
     </Modal>

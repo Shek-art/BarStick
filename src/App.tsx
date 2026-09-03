@@ -5,7 +5,7 @@ import type {
 } from "./types";
 import { normalizeEan13, generateBarcodeDataUrl } from "./lib/barcode";
 import { exportZip, exportPdf, ExportCancelled, type CancelToken } from "./lib/exporters";
-import { loadSettings, saveSettings, DEFAULT_SETTINGS } from "./lib/settings";
+import { loadSettings, saveSettings, DEFAULT_SETTINGS, labelPx } from "./lib/settings";
 import { processImageFile, fileToDataUrl } from "./lib/images";
 import { DEMO_FIELDS, resolveDemoImages } from "./lib/demo";
 import LabelSheet from "./components/LabelSheet";
@@ -15,11 +15,9 @@ import SettingsModal from "./components/SettingsModal";
 import MediaModal from "./components/MediaModal";
 import Lightbox from "./components/Lightbox";
 import { TitleBar, StatusBar, Toasts } from "./components/Chrome";
-import DownloadMenu from "./components/DownloadMenu";
 import ListChecker from "./components/ListChecker";
-import { useInstallPrompt } from "./hooks/useInstallPrompt";
 import {
-  IconPrint, IconPdf, IconZip, IconReset, IconSpark, IconSettings, IconX,
+  IconPdf, IconZip, IconReset, IconSpark, IconSettings, IconX,
   IconTag, IconClipboardCheck,
 } from "./components/icons";
 
@@ -109,12 +107,6 @@ export default function App() {
     setToasts((prev) => [...prev.slice(-3), { id, kind, text }]);
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4200);
   }, []);
-
-  /* ── Установка как приложение Windows (PWA) ────────────── */
-  const onAppInstalled = useCallback(() => {
-    toast("Приложение установлено — ярлык добавлен в меню «Пуск»", "success");
-  }, [toast]);
-  const { canInstall, installed, install } = useInstallPrompt(onAppInstalled);
 
   /* ── Автосохранение полей ──────────────────────────────── */
   useEffect(() => {
@@ -276,10 +268,11 @@ export default function App() {
       const token: CancelToken = { cancelled: false };
       cancelRef.current = token;
       setExporting({ pct: 0, label: kind === "zip" ? "Рендер JPG" : "Рендер страниц" });
-      const size = { w: settings.width, h: settings.height };
+      const sizePx = labelPx(settings);
+      const sizeMm = { wMm: settings.widthMm, hMm: settings.heightMm };
       try {
         /* Двойной rAF: гарантируем, что экспортный слой отрисован и
-           улеглась вёрстка до захвата html2canvas */
+           улеглась вёрстка до захвата */
         await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 
         const available = labels.reduce((n, _, i) => n + (getExportEl(i) ? 1 : 0), 0);
@@ -292,11 +285,11 @@ export default function App() {
         }
 
         if (kind === "zip") {
-          await exportZip(labels, getExportEl, size, (pct) => setExporting({ pct, label: pct < 96 ? "Рендер JPG" : "Упаковка ZIP" }), token);
+          await exportZip(labels, getExportEl, sizePx, (pct) => setExporting({ pct, label: pct < 96 ? "Рендер JPG" : "Упаковка ZIP" }), token);
           toast(`ZIP готов — ${labels.length} наклеек`, "success");
         } else {
-          await exportPdf(labels, getExportEl, size, (pct) => setExporting({ pct, label: "Сборка PDF" }), token);
-          toast(`PDF сохранён — ${labels.length} страниц`, "success");
+          await exportPdf(labels, getExportEl, sizePx, sizeMm, (pct) => setExporting({ pct, label: "Сборка PDF" }), token);
+          toast(`PDF сохранён — ${labels.length} страниц (${sizeMm.wMm}×${sizeMm.hMm} мм)`, "success");
         }
       } catch (err) {
         if (err instanceof ExportCancelled) {
@@ -310,7 +303,7 @@ export default function App() {
         setExporting(null);
       }
     },
-    [labels, exporting, getExportEl, toast, settings.width, settings.height]
+    [labels, exporting, getExportEl, toast, settings]
   );
 
   const stopExport = useCallback(() => {
@@ -357,12 +350,6 @@ export default function App() {
     }
   }, [patchSettings, toast]);
 
-  const handleWinButton = useCallback((b: string) => {
-    if (b === "close") toast("Это веб-окно. Кнопка «Скачать» в тулбаре покажет, как получить программу для Windows", "info");
-    else if (b === "max") toast("Окно уже развёрнуто на всю рабочую область", "info");
-    else toast("Сворачивание доступно в десктоп-версии (Electron)", "info");
-  }, [toast]);
-
   /* ── Горячие клавиши ───────────────────────────────────── */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -376,10 +363,11 @@ export default function App() {
   }, [handlePrint]);
 
   const busy = exporting !== null;
+  const exportPx = labelPx(settings);
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-ink-900 font-body">
-      <TitleBar onWinButton={handleWinButton} />
+      <TitleBar />
 
       {/* ── Вкладки модулей ── */}
       <div className="no-print h-10 bg-ink-900 border-b border-white/8 flex items-stretch px-3 shrink-0">
@@ -437,15 +425,6 @@ export default function App() {
                 </button>
               </>
             )}
-            <DownloadMenu
-              canInstall={canInstall}
-              installed={installed}
-              onInstall={install}
-              onNotify={toast}
-            />
-            <button className="tb-btn tb-primary cursor-pointer" onClick={handlePrint} disabled={busy} title="Ctrl+Enter">
-              <IconPrint size={15} /> Печать
-            </button>
           </div>
         </div>
 
@@ -502,7 +481,7 @@ export default function App() {
         saveState={saveState}
         zoom={zoom}
         onZoom={(z) => setZoom(z)}
-        labelSize={`${settings.width}×${settings.height}`}
+        labelSize={`${settings.widthMm}×${settings.heightMm} мм`}
         mode={tab}
         checker={checkerStats}
       />
@@ -512,7 +491,7 @@ export default function App() {
         ref={exportLayerRef}
         aria-hidden
         className="no-print fixed top-0 pointer-events-none"
-        style={{ left: -settings.width - 400, width: settings.width }}
+        style={{ left: -exportPx.w - 400, width: exportPx.w }}
       >
         {labels.map((l, i) => (
           <div key={i} data-label-index={i}>
@@ -522,11 +501,13 @@ export default function App() {
       </div>
 
       {/* ── Зона печати ── */}
-      {/* Размер страницы = размеру наклейки: иначе браузер подставит A4
-          с полями, и текст в сохранённом PDF сместится вниз */}
+      {/* Страница = физическому размеру наклейки в мм (иначе браузер подставит
+          A4 с полями и текст сместится). Наклейка рисуется в px (10 px/мм)
+          и масштабируется под мм-страницу: 96 CSS-px на дюйм / 254 px. */}
       <style>{`@media print {
-        @page { size: ${settings.width}px ${settings.height}px; margin: 0; }
-        .print-sheet { width: ${settings.width}px; height: ${settings.height}px; }
+        @page { size: ${settings.widthMm}mm ${settings.heightMm}mm; margin: 0; }
+        .print-sheet { width: ${settings.widthMm}mm; height: ${settings.heightMm}mm; overflow: hidden; }
+        .print-sheet > div { transform: scale(${96 / 254}); transform-origin: top left; }
       }`}</style>
       <div className="hidden print:block">
         {labels.map((l, i) => (

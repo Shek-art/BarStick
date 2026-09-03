@@ -1,6 +1,6 @@
 import { memo, useLayoutEffect, useRef } from "react";
 import type { LabelData, LabelSettings, RowKey } from "../types";
-import { isDarkColor } from "../lib/settings";
+import { isDarkColor, labelPx } from "../lib/settings";
 
 interface FitTextProps {
   text: string;
@@ -206,11 +206,13 @@ function LabelSheet({ data, settings }: { data: LabelData; settings: LabelSettin
     )
   );
 
+  const px = labelPx(settings);
+
   return (
     <div
       style={{
-        width: settings.width,
-        height: settings.height,
+        width: px.w,
+        height: px.h,
         boxSizing: "border-box",
         border: `${bw}px solid ${bc}`,
         background: "#fff",
