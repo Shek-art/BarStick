@@ -2,11 +2,24 @@ import type { LabelSettings, RowKey } from "../types";
 
 export const SETTINGS_KEY = "nkl4k:settings";
 
+/** 10 px на миллиметр (≈254 DPI) — внутренняя сетка рендера */
+export const PX_PER_MM = 10;
+
+export interface LabelSettingsMm {
+  widthMm: number;
+  heightMm: number;
+}
+
+/** Перевод миллиметров из настроек в пиксели рендера */
+export function labelPx(s: LabelSettingsMm): { w: number; h: number } {
+  return { w: Math.round(s.widthMm * PX_PER_MM), h: Math.round(s.heightMm * PX_PER_MM) };
+}
+
 export const DEFAULT_SETTINGS: LabelSettings = {
   logo: null,
   showLogo: true,
-  width: 500,
-  height: 850,
+  widthMm: 50,
+  heightMm: 85,
   fontFamily: "Arial",
   fontSize: 13.5,
   borderWidth: 2,
@@ -26,11 +39,11 @@ export const DEFAULT_SETTINGS: LabelSettings = {
   customFields: [],
 };
 
-export const SIZE_PRESETS = [
-  { label: "500 × 850", w: 500, h: 850, note: "Стандарт" },
-  { label: "400 × 600", w: 400, h: 600, note: "Компакт" },
-  { label: "600 × 900", w: 600, h: 900, note: "Крупная" },
-  { label: "380 × 520", w: 380, h: 520, note: "Мини" },
+export const MM_PRESETS = [
+  { label: "50 × 85", w: 50, h: 85, note: "Стандарт" },
+  { label: "40 × 60", w: 40, h: 60, note: "Компакт" },
+  { label: "60 × 90", w: 60, h: 90, note: "Крупная" },
+  { label: "38 × 52", w: 38, h: 52, note: "Мини" },
 ];
 
 export const FONTS = [
@@ -63,14 +76,25 @@ export const ROW_TITLES: Record<RowKey, string> = {
   barcode: "Штрих-код",
 };
 
+const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
 export function loadSettings(): LabelSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return DEFAULT_SETTINGS;
-    const parsed = JSON.parse(raw) as Partial<LabelSettings>;
+    const parsed = JSON.parse(raw) as Partial<LabelSettings> & { width?: number; height?: number };
+
+    /* Миграция со старых сохранений в пикселях (10 px = 1 мм) */
+    let widthMm = typeof parsed.widthMm === "number" ? parsed.widthMm : NaN;
+    let heightMm = typeof parsed.heightMm === "number" ? parsed.heightMm : NaN;
+    if (!Number.isFinite(widthMm) && typeof parsed.width === "number") widthMm = parsed.width / PX_PER_MM;
+    if (!Number.isFinite(heightMm) && typeof parsed.height === "number") heightMm = parsed.height / PX_PER_MM;
+
     return {
       ...DEFAULT_SETTINGS,
       ...parsed,
+      widthMm: clamp(Math.round(Number.isFinite(widthMm) ? widthMm : 50), 20, 150),
+      heightMm: clamp(Math.round(Number.isFinite(heightMm) ? heightMm : 85), 30, 200),
       rows: { ...DEFAULT_SETTINGS.rows, ...(parsed.rows ?? {}) },
       customFields: Array.isArray(parsed.customFields) ? parsed.customFields : [],
     };

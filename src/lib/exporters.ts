@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
+import { toCanvas } from "html-to-image";
 import type { LabelData } from "../types";
 
 export interface ExportSize {
@@ -29,16 +29,22 @@ export function stickerFileName(label: LabelData): string {
   return `${pad2(label.uniqueIndex)}-${pad2(label.copyIndex)}_${code}`;
 }
 
+/**
+ * Захват наклейки в canvas.
+ * Используется html-to-image (SVG foreignObject): элемент отрисовывается
+ * самим браузером, поэтому текст и вёрстка совпадают с экраном пиксель в
+ * пиксель — в отличие от html2canvas, который рисует текст собственными
+ * эвристиками и «роняет» строки вниз.
+ */
 async function captureLabel(el: HTMLElement, size: ExportSize): Promise<HTMLCanvasElement> {
   try {
-    return await html2canvas(el, {
-      scale: 1.5,
-      useCORS: true,
-      allowTaint: false,
-      backgroundColor: "#ffffff",
-      logging: false,
+    return await toCanvas(el, {
       width: size.w,
       height: size.h,
+      pixelRatio: 1.5,
+      backgroundColor: "#ffffff",
+      skipFonts: true,
+      cacheBust: false,
     });
   } catch (err) {
     console.warn("Не удалось отрисовать наклейку, используется заглушка:", err);
@@ -81,6 +87,7 @@ export async function exportZip(
   token: CancelToken
 ): Promise<void> {
   const zip = new JSZip();
+  let rendered = 0;
 
   for (let i = 0; i < labels.length; i++) {
     if (token.cancelled) throw new ExportCancelled();
@@ -89,50 +96,66 @@ export async function exportZip(
       const canvas = await captureLabel(el, size);
       const data = canvas.toDataURL("image/jpeg", 0.85).split(",")[1];
       zip.file(`${stickerFileName(labels[i])}.jpg`, data, { base64: true });
+      rendered++;
     }
     onProgress(Math.round(((i + 1) / labels.length) * 92));
     await nextFrame();
   }
 
   if (token.cancelled) throw new ExportCancelled();
+  if (rendered === 0) throw new Error("Не удалось отрисовать ни одной наклейки — попробуйте ещё раз");
   onProgress(96);
   const blob = await zip.generateAsync({ type: "blob" });
   triggerDownload(blob, `nakleyki_4k_${Date.now()}.zip`);
   onProgress(100);
 }
 
-/** Экспорт всех наклеек в PDF (одна наклейка = одна страница) */
+/** Размер страницы PDF в физических миллиметрах */
+export interface PdfSizeMm {
+  wMm: number;
+  hMm: number;
+}
+
+/**
+ * Экспорт всех наклеек в PDF (одна наклейка = одна страница).
+ * Страница задаётся в миллиметрах — PDF получается физически точного размера
+ * (например, 50×85 мм), изображение растягивается на страницу без потерь.
+ */
 export async function exportPdf(
   labels: LabelData[],
   getElement: (i: number) => HTMLElement | null,
-  size: ExportSize,
+  sizePx: ExportSize,
+  sizeMm: PdfSizeMm,
   onProgress: (pct: number) => void,
   token: CancelToken
 ): Promise<void> {
-  const orientation = size.h >= size.w ? "p" : "l";
+  const orientation = sizeMm.hMm >= sizeMm.wMm ? "p" : "l";
   const pdf = new jsPDF({
     orientation,
-    unit: "px",
-    format: [size.w, size.h],
-    hotfixes: ["px_scaling"],
+    unit: "mm",
+    format: [sizeMm.wMm, sizeMm.hMm],
   });
 
   const images: string[] = [];
   for (let i = 0; i < labels.length; i++) {
     if (token.cancelled) throw new ExportCancelled();
     const el = getElement(i);
-    images.push(el ? (await captureLabel(el, size)).toDataURL("image/jpeg", 0.85) : "");
+    images.push(el ? (await captureLabel(el, sizePx)).toDataURL("image/jpeg", 0.85) : "");
     onProgress(Math.round(((i + 1) / labels.length) * 90));
     await nextFrame();
   }
 
   if (token.cancelled) throw new ExportCancelled();
+  const rendered = images.filter(Boolean).length;
+  if (rendered === 0) throw new Error("Не удалось отрисовать ни одной наклейки — попробуйте ещё раз");
   onProgress(95);
 
-  images.forEach((img, i) => {
+  let added = 0;
+  images.forEach((img) => {
     if (!img) return;
-    if (i > 0) pdf.addPage([size.w, size.h], orientation);
-    pdf.addImage(img, "JPEG", 0, 0, size.w, size.h);
+    if (added > 0) pdf.addPage([sizeMm.wMm, sizeMm.hMm], orientation);
+    pdf.addImage(img, "JPEG", 0, 0, sizeMm.wMm, sizeMm.hMm);
+    added++;
   });
 
   pdf.save(`nakleyki_4k_${Date.now()}.pdf`);

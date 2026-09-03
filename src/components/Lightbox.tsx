@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { LabelData, LabelSettings } from "../types";
+import { labelPx } from "../lib/settings";
 import LabelSheet from "./LabelSheet";
 import { IconX, IconChevronLeft, IconChevronRight, IconMinus, IconPlus, IconFit } from "./icons";
 
@@ -16,13 +17,14 @@ export default function Lightbox({ labels, index, settings, onClose, onNav }: Pr
   const [scale, setScale] = useState(0.8);
   const [isFit, setIsFit] = useState(true);
   const label = labels[index];
+  const px = labelPx(settings);
 
   const fit = useCallback(() => {
     const vw = window.innerWidth - 150;
     const vh = window.innerHeight - 170;
-    setScale(Math.min(vw / settings.width, vh / settings.height, 1.15));
+    setScale(Math.min(vw / px.w, vh / px.h, 1.15));
     setIsFit(true);
-  }, [settings.width, settings.height]);
+  }, [px.w, px.h]);
 
   useEffect(() => {
     fit();
@@ -102,8 +104,8 @@ export default function Lightbox({ labels, index, settings, onClose, onNav }: Pr
           </button>
         )}
 
-        <div key={index} className="pop-in shrink-0" style={{ width: settings.width * scale, height: settings.height * scale }}>
-          <div style={{ transform: `scale(${scale})`, transformOrigin: "top left", width: settings.width, height: settings.height }}>
+        <div key={index} className="pop-in shrink-0" style={{ width: px.w * scale, height: px.h * scale }}>
+          <div style={{ transform: `scale(${scale})`, transformOrigin: "top left", width: px.w, height: px.h }}>
             <div className="shadow-[0_30px_90px_rgba(0,0,0,0.65)]">
               <LabelSheet data={label} settings={settings} />
             </div>
@@ -125,7 +127,7 @@ export default function Lightbox({ labels, index, settings, onClose, onNav }: Pr
       <div className="shrink-0 h-8 border-t border-white/8 flex items-center justify-center gap-4 text-[10.5px] font-mono text-ink-500">
         <span>← → листать</span>
         <span>Esc — закрыть</span>
-        <span>{settings.width} × {settings.height}px</span>
+        <span>{settings.widthMm} × {settings.heightMm} мм</span>
       </div>
     </div>
   );

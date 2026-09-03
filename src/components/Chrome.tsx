@@ -1,44 +1,18 @@
 import type { ToastItem } from "../types";
 import {
-  LogoMark, IconWinMin, IconWinMax, IconWinClose,
+  LogoMark,
   IconMinus, IconPlus, IconCheck, IconAlert, IconInfo, IconX,
 } from "./icons";
 
-/* ── Тайтлбар в духе настольного приложения Windows ─────────── */
-export function TitleBar({ onWinButton }: { onWinButton: (b: string) => void }) {
+/* ── Тайтлбар ────────────────────────────────────────────────── */
+export function TitleBar() {
   return (
-    <div className="no-print h-11 bg-ink-900 border-b border-white/8 flex items-center justify-between pl-3 select-none shrink-0">
+    <div className="no-print h-11 bg-ink-900 border-b border-white/8 flex items-center pl-3.5 select-none shrink-0">
       <div className="flex items-center gap-2.5">
         <LogoMark size={24} />
         <span className="font-display text-[11px] font-bold tracking-[0.14em] text-paper uppercase">
           Генератор наклеек
         </span>
-        <span className="ml-1 font-mono text-[9.5px] font-bold text-lime-glow bg-lime-glow/12 border border-lime-glow/25 rounded px-1.5 py-px tracking-wider">
-          4K • WINDOWS
-        </span>
-      </div>
-
-      <div className="flex items-center self-stretch">
-        {[
-          { icon: <IconWinMin size={15} />, label: "Свернуть", id: "min" },
-          { icon: <IconWinMax size={14} />, label: "Развернуть", id: "max" },
-        ].map((b) => (
-          <button
-            key={b.id}
-            title={b.label}
-            onClick={() => onWinButton(b.id)}
-            className="h-full w-11 flex items-center justify-center text-ink-300 hover:bg-white/8 hover:text-paper transition-colors cursor-default"
-          >
-            {b.icon}
-          </button>
-        ))}
-        <button
-          title="Закрыть"
-          onClick={() => onWinButton("close")}
-          className="h-full w-11 flex items-center justify-center text-ink-300 hover:bg-rust hover:text-white transition-colors cursor-default"
-        >
-          <IconWinClose size={15} />
-        </button>
       </div>
     </div>
   );
@@ -108,9 +82,6 @@ export function StatusBar({ uniqueCount, totalCount, saveState, zoom, onZoom, la
       )}
 
       <div className="flex items-center gap-3">
-        {mode === "labels" && (
-          <span className="hidden lg:block text-ink-500 font-mono text-[10px]">Ctrl+Enter — печать</span>
-        )}
         {mode === "checker" && (
           <span className="hidden lg:block text-ink-500 font-mono text-[10px]">TXT / CSV · до 3 списков</span>
         )}

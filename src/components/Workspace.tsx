@@ -1,4 +1,5 @@
 import type { LabelData, LabelSettings } from "../types";
+import { labelPx } from "../lib/settings";
 import LabelSheet from "./LabelSheet";
 import { IconSpark, IconExpand } from "./icons";
 
@@ -37,8 +38,9 @@ export default function Workspace({ labels, zoom, settings, onDemo, onOpen }: Pr
     );
   }
 
-  const w = settings.width * zoom;
-  const h = settings.height * zoom;
+  const px = labelPx(settings);
+  const w = px.w * zoom;
+  const h = px.h * zoom;
 
   return (
     <div className="p-7 flex flex-wrap gap-7 justify-start content-start">
