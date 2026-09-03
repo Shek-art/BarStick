@@ -25,14 +25,32 @@ npx electron electron/main.cjs
 указывайте путь `electron/main.cjs` явно.
 
 ### 3. Сборка установщика .exe (NSIS)
+
+**Самый простой способ — двойной клик по `make-exe.bat`** в корне проекта
+(сам установит всё нужное, соберёт `dist/`, нарисует иконку и соберёт .exe).
+
+Вручную в PowerShell:
 ```powershell
 npm install
 npm run build
 npm i -D electron electron-builder
+node build/make-icon.cjs            # иконка (по желанию, без неё тоже соберётся)
 npx electron-builder --config electron-builder.yml --win
 ```
-Установщик появится в папке `release/` (файл `Nakleyki4K-Setup-x.x.x.exe`),
-с ярлыками на рабочем столе и в меню «Пуск».
+Результат в папке `release/`:
+- `Nakleyki4K-Setup-*.exe` — установщик (выбор папки, ярлыки на рабочем столе и в «Пуске»);
+- `Nakleyki4K-Portable-*.exe` — portable-версия без установки.
+
+### Если сборка .exe падает
+
+| Ошибка в консоли | Причина и решение |
+|---|---|
+| `Application entry file ... does not exist` / `main is not defined` | В package.json нет поля `main`. В `electron-builder.yml` уже настроен `extraMetadata.main: electron/main.cjs` — запускайте сборку **с указанием конфига**: `npx electron-builder --config electron-builder.yml --win` |
+| `Cannot download electron / nsis` | electron-builder качает Electron и NSIS из интернета. Нужна сеть без прокси-блокировок (GitHub Releases). Повторите — загрузки кэшируются |
+| `cannot execute ... ENOENT` на `npm`/`npx` | Node.js не установлен или не добавлен в PATH — поставьте LTS с nodejs.org |
+| Установщик собирается, но весит сотни МБ | Проверьте, что в `files:` конфига есть `!node_modules/**` — рантайму приложения node_modules не нужен |
+| Антивирус ругается на готовый .exe | Приложение без цифровой подписи — это норма для самоподписанных сборок; добавьте исключение или подпишите сертификатом |
+| Иконка «стандартная серая» | Положите `build/icon.ico` (или запустите `node build/make-icon.cjs` — создаст PNG, electron-builder сам сконвертирует в .ico) |
 
 ## Если окно Electron пустое (диагностика)
 
