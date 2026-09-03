@@ -1,20 +1,54 @@
 # Конфигурация сборки установщика Windows (.exe) для «Генератор наклеек 4K»
+#
+# Сборка:
+#   npm install
+#   npm run build
+#   npm i -D electron electron-builder
+#   npx electron-builder --config electron-builder.yml --win
+#
+# Результат: release/Nakleyki4K-Setup-*.exe (установщик)
+#            release/Nakleyki4K-Portable-*.exe (без установки)
+
 appId: com.4k.labelgen
 productName: "Генератор Наклеек 4K"
 copyright: "© 2026 4K"
+
+# ВАЖНО: в package.json нет полей "main" и "version" — инжектим их
+# в упакованный package.json на момент сборки, иначе electron-builder
+# не найдёт точку входа и поставит версию 0.0.0.
+extraMetadata:
+  main: electron/main.cjs
+  version: 1.0.0
 
 directories:
   output: release
   buildResources: build
 
+# Берём только необходимое. node_modules НЕ нужен: приложение в рантайме
+# использует лишь API Electron и статическую сборку dist/ (это исключение
+# убирает из установщика сотни МБ неиспользуемых зависимостей).
 files:
   - dist/**
   - electron/**
   - package.json
+  - "!node_modules/**"
+  - "!release/**"
+  - "!src/**"
+  - "!public/**"
+
+asar: true
+compression: maximum
+npmRebuild: false
+nodeGypRebuild: false
 
 win:
+  # Иконка подхватится из build/icon.ico или build/icon.png
+  # (PNG 256×256+ electron-builder сам сконвертирует в .ico)
   target:
     - target: nsis
+      arch:
+        - x64
+    - target: portable
       arch:
         - x64
   artifactName: "Nakleyki4K-Setup-${version}.${ext}"
@@ -28,3 +62,6 @@ nsis:
   installerLanguages:
     - ru_RU
     - en_US
+
+portable:
+  artifactName: "Nakleyki4K-Portable-${version}.${ext}"
