@@ -1,0 +1,42 @@
+# Конфигурация сборки установщика Windows (.exe) для «Генератор наклеек 4K»
+appId: com.4k.labelgen
+productName: "Генератор Наклеек 4K"
+copyright: "© 2026 4K"
+
+# В package.json нет полей main/version — инжектим их при упаковке.
+# Без main electron-builder не найдёт точку входа и сборка упадёт.
+extraMeta
+  main: electron/main.cjs
+  version: 1.0.0
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**
+  - electron/**
+  - package.json
+  - "!node_modules/**"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+  artifactName: "Nakleyki4K-${version}-${arch}.${ext}"
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: "Генератор Наклеек 4K"
+
+portable:
+  artifactName: "Nakleyki4K-Portable-${version}.${ext}"
+
+npmRebuild: false
