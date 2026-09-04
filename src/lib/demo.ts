@@ -1,8 +1,21 @@
 import type { FieldsState } from "../types";
 
+/** Автономные демо-изображения (SVG dataURL — работают офлайн и в экспорте без CORS) */
+function productSvg(label: string, accent: string, glyph: string): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
+<rect width="640" height="480" fill="#ffffff"/>
+<circle cx="320" cy="205" r="118" fill="${accent}" opacity="0.14"/>
+<circle cx="320" cy="205" r="86" fill="${accent}" opacity="0.22"/>
+<text x="320" y="235" text-anchor="middle" font-family="Arial, sans-serif" font-weight="700" font-size="86" fill="${accent}">${glyph}</text>
+<text x="320" y="392" text-anchor="middle" font-family="Arial, sans-serif" font-weight="600" font-size="26" fill="#3a4740">${label}</text>
+<rect x="150" y="420" width="340" height="6" rx="3" fill="${accent}" opacity="0.35"/>
+</svg>`;
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+
 export const DEMO_IMAGES = [
-  "https://image.qwenlm.ai/generated-images/1a75d9d6-b449-44a4-8a2e-d09840074382/_result.png",
-  "https://image.qwenlm.ai/generated-images/05d9090a-4bf6-4670-8ecf-85216a18cc0a/_result.png",
+  productSvg("Петля мебельная GTV", "#1e7a48", "⌗"),
+  productSvg("Ручка-скоба Boyard", "#14213d", "⊞"),
 ];
 
 export const DEMO_FIELDS: FieldsState = {
@@ -16,27 +29,7 @@ export const DEMO_FIELDS: FieldsState = {
   copies: "2\n1",
 };
 
-/**
- * Переводит внешние демо-изображения в dataURL, чтобы экспорт
- * (SVG foreignObject) не зависел от CORS внешних хостов.
- * При неудаче возвращает исходный URL.
- */
+/** Демо-изображения уже автономны (dataURL) — просто возвращаем их */
 export async function resolveDemoImages(): Promise<string[]> {
-  return Promise.all(
-    DEMO_IMAGES.map(async (url) => {
-      try {
-        const res = await fetch(url);
-        if (!res.ok) return url;
-        const blob = await res.blob();
-        return await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result));
-          reader.onerror = () => resolve(url);
-          reader.readAsDataURL(blob);
-        });
-      } catch {
-        return url;
-      }
-    })
-  );
+  return DEMO_IMAGES;
 }

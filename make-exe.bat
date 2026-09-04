@@ -16,33 +16,26 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [1/6] Устанавливаю зависимости npm...
+echo [1/5] Устанавливаю зависимости npm...
 call npm install
 if errorlevel 1 goto :fail
 
-echo [2/6] Собираю приложение (npm run build)...
+echo [2/5] Собираю приложение (npm run build)...
 call npm run build
 if errorlevel 1 goto :fail
 
-echo [3/6] Устанавливаю Electron и electron-builder...
+echo [3/5] Устанавливаю Electron и electron-builder...
 call npm install -D electron electron-builder
 if errorlevel 1 goto :fail
 
-if not exist "build\icon.png" (
-    echo [4/6] Рисую иконку приложения...
-    node build\make-icon.cjs
-) else (
-    echo [4/6] Иконка уже есть — пропускаю.
-)
-
-echo [5/6] Собираю установщик ^(нужен интернет: качаются NSIS и Electron^)...
+echo [4/5] Собираю установщик ^(нужен интернет: качаются NSIS и Electron^)...
 call npx electron-builder --config electron-builder.yml --win
 if errorlevel 1 goto :fail
 
 echo.
 echo ============================================================
 echo   ГОТОВО! Файлы в папке release\:
-echo     Nakleyki4K-Setup-*.exe     — установщик ^(ярлыки, «Пуск»^)
+echo     Nakleyki4K-1.0.0-x64.exe   — установщик ^(ярлыки, «Пуск»^)
 echo     Nakleyki4K-Portable-*.exe  — portable ^(без установки^)
 echo ============================================================
 echo.

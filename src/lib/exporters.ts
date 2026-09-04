@@ -8,6 +8,11 @@ export interface ExportSize {
   h: number;
 }
 
+export interface ExportSizeMm {
+  wMm: number;
+  hMm: number;
+}
+
 export interface CancelToken {
   cancelled: boolean;
 }
@@ -32,9 +37,8 @@ export function stickerFileName(label: LabelData): string {
 /**
  * Захват наклейки в canvas.
  * Используется html-to-image (SVG foreignObject): элемент отрисовывается
- * самим браузером, поэтому текст и вёрстка совпадают с экраном пиксель в
- * пиксель — в отличие от html2canvas, который рисует текст собственными
- * эвристиками и «роняет» строки вниз.
+ * самим браузером, поэтому текст и вёрстка в файле совпадают с экраном
+ * пиксель в пиксель.
  */
 async function captureLabel(el: HTMLElement, size: ExportSize): Promise<HTMLCanvasElement> {
   try {
@@ -110,22 +114,12 @@ export async function exportZip(
   onProgress(100);
 }
 
-/** Размер страницы PDF в физических миллиметрах */
-export interface PdfSizeMm {
-  wMm: number;
-  hMm: number;
-}
-
-/**
- * Экспорт всех наклеек в PDF (одна наклейка = одна страница).
- * Страница задаётся в миллиметрах — PDF получается физически точного размера
- * (например, 50×85 мм), изображение растягивается на страницу без потерь.
- */
+/** Экспорт всех наклеек в PDF (одна наклейка = одна страница, физический размер в мм) */
 export async function exportPdf(
   labels: LabelData[],
   getElement: (i: number) => HTMLElement | null,
-  sizePx: ExportSize,
-  sizeMm: PdfSizeMm,
+  size: ExportSize,
+  sizeMm: ExportSizeMm,
   onProgress: (pct: number) => void,
   token: CancelToken
 ): Promise<void> {
@@ -140,7 +134,7 @@ export async function exportPdf(
   for (let i = 0; i < labels.length; i++) {
     if (token.cancelled) throw new ExportCancelled();
     const el = getElement(i);
-    images.push(el ? (await captureLabel(el, sizePx)).toDataURL("image/jpeg", 0.85) : "");
+    images.push(el ? (await captureLabel(el, size)).toDataURL("image/jpeg", 0.85) : "");
     onProgress(Math.round(((i + 1) / labels.length) * 90));
     await nextFrame();
   }

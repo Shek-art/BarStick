@@ -2,18 +2,8 @@ import type { LabelSettings, RowKey } from "../types";
 
 export const SETTINGS_KEY = "nkl4k:settings";
 
-/** 10 px на миллиметр (≈254 DPI) — внутренняя сетка рендера */
-export const PX_PER_MM = 10;
-
-export interface LabelSettingsMm {
-  widthMm: number;
-  heightMm: number;
-}
-
-/** Перевод миллиметров из настроек в пиксели рендера */
-export function labelPx(s: LabelSettingsMm): { w: number; h: number } {
-  return { w: Math.round(s.widthMm * PX_PER_MM), h: Math.round(s.heightMm * PX_PER_MM) };
-}
+/** Пикселей на миллиметр при экспорте (PDF, ZIP, печать) */
+export const EXPORT_PX_PER_MM = 10;
 
 export const DEFAULT_SETTINGS: LabelSettings = {
   logo: null,
@@ -40,10 +30,10 @@ export const DEFAULT_SETTINGS: LabelSettings = {
 };
 
 export const MM_PRESETS = [
-  { label: "50 × 85", w: 50, h: 85, note: "Стандарт" },
-  { label: "40 × 60", w: 40, h: 60, note: "Компакт" },
-  { label: "60 × 90", w: 60, h: 90, note: "Крупная" },
-  { label: "38 × 52", w: 38, h: 52, note: "Мини" },
+  { label: "50×85", w: 50, h: 85, note: "Стандарт" },
+  { label: "40×60", w: 40, h: 60, note: "Компакт" },
+  { label: "60×90", w: 60, h: 90, note: "Крупная" },
+  { label: "38×52", w: 38, h: 52, note: "Мини" },
 ];
 
 export const FONTS = [
@@ -76,27 +66,33 @@ export const ROW_TITLES: Record<RowKey, string> = {
   barcode: "Штрих-код",
 };
 
-const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+/** Размер наклейки в экранных/экспортных пикселях (10 px = 1 мм) */
+export function labelPx(s: LabelSettings): { w: number; h: number } {
+  return {
+    w: Math.round(s.widthMm * EXPORT_PX_PER_MM),
+    h: Math.round(s.heightMm * EXPORT_PX_PER_MM),
+  };
+}
 
 export function loadSettings(): LabelSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return DEFAULT_SETTINGS;
-    const parsed = JSON.parse(raw) as Partial<LabelSettings> & { width?: number; height?: number };
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
 
-    /* Миграция со старых сохранений в пикселях (10 px = 1 мм) */
-    let widthMm = typeof parsed.widthMm === "number" ? parsed.widthMm : NaN;
-    let heightMm = typeof parsed.heightMm === "number" ? parsed.heightMm : NaN;
-    if (!Number.isFinite(widthMm) && typeof parsed.width === "number") widthMm = parsed.width / PX_PER_MM;
-    if (!Number.isFinite(heightMm) && typeof parsed.height === "number") heightMm = parsed.height / PX_PER_MM;
+    /* Миграция со старого формата в пикселях */
+    let widthMm = Number(parsed.widthMm);
+    let heightMm = Number(parsed.heightMm);
+    if (!widthMm && typeof parsed.width === "number") widthMm = Math.round(parsed.width / EXPORT_PX_PER_MM);
+    if (!heightMm && typeof parsed.height === "number") heightMm = Math.round(parsed.height / EXPORT_PX_PER_MM);
 
     return {
       ...DEFAULT_SETTINGS,
-      ...parsed,
-      widthMm: clamp(Math.round(Number.isFinite(widthMm) ? widthMm : 50), 20, 150),
-      heightMm: clamp(Math.round(Number.isFinite(heightMm) ? heightMm : 85), 30, 200),
-      rows: { ...DEFAULT_SETTINGS.rows, ...(parsed.rows ?? {}) },
-      customFields: Array.isArray(parsed.customFields) ? parsed.customFields : [],
+      ...(parsed as Partial<LabelSettings>),
+      widthMm: widthMm || DEFAULT_SETTINGS.widthMm,
+      heightMm: heightMm || DEFAULT_SETTINGS.heightMm,
+      rows: { ...DEFAULT_SETTINGS.rows, ...((parsed.rows as LabelSettings["rows"]) ?? {}) },
+      customFields: Array.isArray(parsed.customFields) ? (parsed.customFields as LabelSettings["customFields"]) : [],
     };
   } catch {
     return DEFAULT_SETTINGS;

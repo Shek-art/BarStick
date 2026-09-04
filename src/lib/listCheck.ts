@@ -4,246 +4,183 @@ export interface ListInput {
   raw: string;
 }
 
-export interface ParsedLine {
-  /** номер строки в файле (1-based) */
-  no: number;
-  text: string;
-  /** первое число в начале строки: «1_», «12 » , «123-…» */
-  leading: number | null;
-}
-
 export interface ListAnalysis {
   id: string;
   name: string;
+  lines: string[];
   total: number;
-  lines: ParsedLine[];
-  /** Полностью одинаковые строки */
-  fullDupes: { text: string; lineNos: number[] }[];
-  /** Одинаковые первые номера у разных строк */
-  numDupes: { num: number; lineNos: number[] }[];
-  /** Строки без числа в начале */
-  noLeading: number[];
-  /** Нарушения порядка 1, 2, 3, … */
-  seqBreaks: { lineNo: number; prev: number; got: number }[];
+  numbers: (number | null)[];
+  fullDupes: { text: string; lines: number[] }[];
+  numDupes: { num: number; lines: number[] }[];
+  noNumberLines: number[];
+  orderBreaks: { expected: number; got: number; line: number }[];
 }
-
-export interface PositionMismatch {
-  /** позиция (1-based) среди непустых строк */
-  pos: number;
-  values: (number | null)[];
-}
-
-export interface CrossDupe {
-  text: string;
-  lists: string[];
-}
-
-export type Severity = "error" | "warn";
 
 export interface Issue {
-  severity: Severity;
-  list: string | null;
+  severity: "error" | "warn";
+  list?: string;
   text: string;
 }
 
 export interface CheckReport {
   analyses: ListAnalysis[];
   countsMatch: boolean;
-  positionsChecked: number;
-  mismatches: PositionMismatch[];
   numbersMatch: boolean;
-  crossDupes: CrossDupe[];
+  mismatches: { pos: number; values: (number | null)[] }[];
   dupeCount: number;
+  crossDupes: { a: string; b: string; text: string }[];
   issues: Issue[];
   errors: number;
   warns: number;
+  positionsChecked: number;
 }
 
 export function countNonEmpty(raw: string): number {
-  return raw.split(/\r?\n/).filter((l) => l.trim()).length;
+  return raw.split("\n").map((s) => s.trim()).filter(Boolean).length;
 }
 
-const LEADING_RE = /^\s*(\d+)/;
+/** Первое число строки: «1_», «1-», «1)», «1 » и т.п. */
+export function parseLeadingNumber(line: string): number | null {
+  const m = line.trim().match(/^(\d{1,6})\s*[_\-–—.)\s]/);
+  return m ? parseInt(m[1], 10) : null;
+}
 
-export function analyzeList(list: ListInput): ListAnalysis {
-  const lines: ParsedLine[] = [];
-  list.raw.split(/\r?\n/).forEach((rawLine, idx) => {
-    const text = rawLine.trim();
-    if (!text) return;
-    const m = text.match(LEADING_RE);
-    lines.push({ no: idx + 1, text, leading: m ? Number(m[1]) : null });
-  });
+function analyze(input: ListInput): ListAnalysis {
+  const lines = input.raw.split("\n").map((s) => s.trim()).filter(Boolean);
+  const numbers = lines.map(parseLeadingNumber);
 
-  /* Полные дубликаты строк */
   const byText = new Map<string, number[]>();
-  lines.forEach((l) => {
-    const key = l.text.toLowerCase();
-    byText.set(key, [...(byText.get(key) ?? []), l.no]);
+  lines.forEach((t, i) => {
+    const key = t.toLowerCase();
+    byText.set(key, [...(byText.get(key) ?? []), i + 1]);
   });
   const fullDupes = [...byText.entries()]
-    .filter(([, nos]) => nos.length > 1)
-    .map(([key, nos]) => ({ text: lines.find((l) => l.text.toLowerCase() === key)!.text, lineNos: nos }));
+    .filter(([, ls]) => ls.length > 1)
+    .map(([text, ls]) => ({ text: lines[ls[0] - 1], lines: ls }));
 
-  /* Дубликаты первых номеров */
   const byNum = new Map<number, number[]>();
-  lines.forEach((l) => {
-    if (l.leading === null) return;
-    byNum.set(l.leading, [...(byNum.get(l.leading) ?? []), l.no]);
+  numbers.forEach((n, i) => {
+    if (n !== null) byNum.set(n, [...(byNum.get(n) ?? []), i + 1]);
   });
   const numDupes = [...byNum.entries()]
-    .filter(([, nos]) => nos.length > 1)
-    .map(([num, nos]) => ({ num, lineNos: nos }))
-    .sort((a, b) => a.num - b.num);
+    .filter(([, ls]) => ls.length > 1)
+    .map(([num, ls]) => ({ num, lines: ls }));
 
-  const noLeading = lines.filter((l) => l.leading === null).map((l) => l.no);
+  const noNumberLines = numbers
+    .map((n, i) => (n === null ? i + 1 : -1))
+    .filter((n) => n > 0);
 
-  /* Порядок следования номеров 1, 2, 3, … */
-  const seqBreaks: ListAnalysis["seqBreaks"] = [];
-  let prev = 0;
-  for (const l of lines) {
-    if (l.leading === null) continue;
-    if (l.leading !== prev + 1) seqBreaks.push({ lineNo: l.no, prev, got: l.leading });
-    prev = l.leading;
-  }
+  const orderBreaks: ListAnalysis["orderBreaks"] = [];
+  let prev: number | null = null;
+  numbers.forEach((n, i) => {
+    if (n === null) return;
+    if (prev !== null && n !== prev + 1) {
+      orderBreaks.push({ expected: prev + 1, got: n, line: i + 1 });
+    }
+    prev = n;
+  });
 
-  return { id: list.id, name: list.name, total: lines.length, lines, fullDupes, numDupes, noLeading, seqBreaks };
+  return { id: input.id, name: input.name, lines, total: lines.length, numbers, fullDupes, numDupes, noNumberLines, orderBreaks };
 }
 
-export function runChecks(lists: ListInput[]): CheckReport {
-  const analyses = lists.map(analyzeList);
+export function runChecks(inputs: ListInput[]): CheckReport {
+  const filled = inputs.filter((l) => countNonEmpty(l.raw) > 0);
+  const analyses = filled.map(analyze);
   const issues: Issue[] = [];
 
-  /* 1. Одинаковое количество строк */
-  const totals = analyses.map((a) => a.total);
-  const countsMatch = totals.every((t) => t === totals[0]);
-  if (!countsMatch) {
+  /* ── Количество строк ── */
+  const counts = analyses.map((a) => a.total);
+  const countsMatch = counts.every((c) => c === counts[0]);
+  if (!countsMatch && analyses.length > 1) {
     issues.push({
       severity: "error",
-      list: null,
-      text: `Количество строк различается: ${analyses.map((a) => `${a.name} — ${a.total}`).join(", ")}`,
+      text: `Разное количество строк: ${analyses.map((a) => `«${a.name}» — ${a.total}`).join(", ")}`,
     });
   }
 
-  /* 2. Совпадение первых номеров по позициям */
-  const minLen = Math.min(...analyses.map((a) => a.lines.length));
-  const mismatches: PositionMismatch[] = [];
-  for (let i = 0; i < minLen; i++) {
-    const values = analyses.map((a) => a.lines[i].leading);
-    const first = values[0];
-    if (values.some((v) => v === null) || values.some((v) => v !== first)) {
-      mismatches.push({ pos: i + 1, values });
-    }
-  }
-  const numbersMatch = mismatches.length === 0 && countsMatch;
-
-  if (!numbersMatch && mismatches.length > 0) {
-    const shown = mismatches.slice(0, 12);
-    shown.forEach((m) => {
-      issues.push({
-        severity: "error",
-        list: null,
-        text: `Позиция ${m.pos}: номера не совпадают — ${analyses
-          .map((a, i) => `${a.name}: ${m.values[i] === null ? "нет номера" : m.values[i]}`)
-          .join(" · ")}`,
-      });
-    });
-    if (mismatches.length > shown.length) {
-      issues.push({
-        severity: "error",
-        list: null,
-        text: `…и ещё ${mismatches.length - shown.length} расхождений (см. таблицу ниже)`,
-      });
-    }
-  }
-
-  /* 3. Дубликаты внутри списков */
-  let dupeCount = 0;
+  /* ── Дубликаты внутри списков ── */
   for (const a of analyses) {
     for (const d of a.fullDupes) {
-      dupeCount += d.lineNos.length - 1;
       issues.push({
         severity: "error",
         list: a.name,
-        text: `Повтор строки «${truncate(d.text, 60)}» — строки ${d.lineNos.join(", ")}`,
+        text: `Полностью повторяющаяся строка «${d.text.length > 42 ? d.text.slice(0, 42) + "…" : d.text}» (строки ${d.lines.join(", ")})`,
       });
     }
     for (const d of a.numDupes) {
-      dupeCount += d.lineNos.length - 1;
       issues.push({
         severity: "error",
         list: a.name,
-        text: `Номер ${d.num} встречается ${d.lineNos.length} раза — строки ${d.lineNos.join(", ")}`,
+        text: `Одинаковый номер ${d.num}_ у разных строк (${d.lines.join(", ")})`,
+      });
+    }
+    if (a.noNumberLines.length > 0) {
+      issues.push({
+        severity: "warn",
+        list: a.name,
+        text: `Строки без номера в начале: ${a.noNumberLines.slice(0, 8).join(", ")}${a.noNumberLines.length > 8 ? "…" : ""}`,
+      });
+    }
+    for (const b of a.orderBreaks) {
+      issues.push({
+        severity: "warn",
+        list: a.name,
+        text: `Сбой порядка нумерации: после ${b.expected - 1}_ идёт ${b.got}_ (строка ${b.line})`,
       });
     }
   }
 
-  /* 4. Предупреждения: строки без номера, сбой порядка */
-  for (const a of analyses) {
-    if (a.noLeading.length > 0) {
-      issues.push({
-        severity: "warn",
-        list: a.name,
-        text: `Строки без числа в начале: ${a.noLeading.slice(0, 10).join(", ")}${a.noLeading.length > 10 ? "…" : ""}`,
-      });
+  /* ── Сверка первых номеров по позициям ── */
+  const maxLen = Math.max(0, ...analyses.map((a) => a.total));
+  const mismatches: CheckReport["mismatches"] = [];
+  for (let pos = 0; pos < maxLen; pos++) {
+    const values = analyses.map((a) => (pos < a.numbers.length ? a.numbers[pos] : null));
+    const distinct = [...new Set(values.filter((v): v is number => v !== null))];
+    if (distinct.length > 1) {
+      mismatches.push({ pos: pos + 1, values });
     }
-    for (const b of a.seqBreaks.slice(0, 8)) {
-      issues.push({
-        severity: "warn",
-        list: a.name,
-        text:
-          b.prev === 0
-            ? `Нумерация начинается с ${b.got}, а не с 1 (строка ${b.lineNo})`
-            : `Сбой порядка: после ${b.prev} идёт ${b.got} (строка ${b.lineNo})`,
-      });
-    }
-    if (a.seqBreaks.length > 8) {
-      issues.push({ severity: "warn", list: a.name, text: `…и ещё ${a.seqBreaks.length - 8} сбоев порядка` });
-    }
+  }
+  const numbersMatch = mismatches.length === 0;
+  if (!numbersMatch) {
+    issues.push({
+      severity: "error",
+      text: `Первые номера расходятся в ${mismatches.length} позициях (например, #${mismatches[0].pos}: ${mismatches[0].values.map((v, i) => `${analyses[i]?.name ?? "?"} → ${v ?? "—"}`).join(", ")})`,
+    });
   }
 
-  /* 5. Пересечения между списками (одинаковые строки в разных списках — часто это ошибка) */
-  const textMap = new Map<string, string[]>();
-  for (const a of analyses) {
-    for (const l of a.lines) {
-      const key = l.text.toLowerCase();
-      const arr = textMap.get(key) ?? [];
-      if (!arr.includes(a.name)) arr.push(a.name);
-      textMap.set(key, arr);
+  /* ── Пересечения строк между списками ── */
+  const crossDupes: CheckReport["crossDupes"] = [];
+  for (let i = 0; i < analyses.length; i++) {
+    for (let j = i + 1; j < analyses.length; j++) {
+      const setB = new Set(analyses[j].lines.map((l) => l.toLowerCase()));
+      for (const line of analyses[i].lines) {
+        if (setB.has(line.toLowerCase())) {
+          crossDupes.push({ a: analyses[i].name, b: analyses[j].name, text: line });
+        }
+      }
     }
   }
-  const crossDupes: CrossDupe[] = [];
-  for (const [key, names] of textMap.entries()) {
-    if (names.length > 1) {
-      const sample = analyses.flatMap((a) => a.lines).find((l) => l.text.toLowerCase() === key)!.text;
-      crossDupes.push({ text: sample, lists: names });
-      if (crossDupes.length >= 15) break;
-    }
-  }
-  for (const c of crossDupes) {
+  if (crossDupes.length > 0) {
     issues.push({
       severity: "warn",
-      list: null,
-      text: `Строка «${truncate(c.text, 50)}» присутствует сразу в: ${c.lists.join(", ")}`,
+      text: `Между списками совпадает ${crossDupes.length} строк (например, «${crossDupes[0].text.slice(0, 40)}»)`,
     });
   }
 
   const errors = issues.filter((i) => i.severity === "error").length;
   const warns = issues.filter((i) => i.severity === "warn").length;
+  const dupeCount = analyses.reduce((n, a) => n + a.fullDupes.length + a.numDupes.length, 0);
 
   return {
     analyses,
     countsMatch,
-    positionsChecked: minLen,
-    mismatches,
     numbersMatch,
-    crossDupes,
+    mismatches,
     dupeCount,
+    crossDupes,
     issues,
     errors,
     warns,
+    positionsChecked: maxLen,
   };
-}
-
-function truncate(s: string, max: number): string {
-  return s.length > max ? s.slice(0, max - 1) + "…" : s;
 }

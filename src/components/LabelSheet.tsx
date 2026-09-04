@@ -19,7 +19,7 @@ interface FitTextProps {
  * Текст ячейки наклейки с гарантированным переносом строк:
  * 1) длинные слова и строки без пробелов разбиваются (overflow-wrap);
  * 2) если перенесённый текст всё равно выше ячейки — кегль автоматически
- *    уменьшается (бинарный поиск), пока всё содержимое не станет видимым.
+ *    уменьшается (бинарный поиск, сетка 0.5px — точный рендер при экспорте).
  */
 function FitText({ text, baseSize, maxHeight, weight = 400, letterSpacing, color, lineHeight = 1.22, fontFamily, nowrap }: FitTextProps) {
   const ref = useRef<HTMLSpanElement>(null);
@@ -30,24 +30,20 @@ function FitText({ text, baseSize, maxHeight, weight = 400, letterSpacing, color
     const fits = () =>
       el.scrollHeight <= maxHeight + 1 && (!nowrap || el.scrollWidth <= el.clientWidth + 1);
 
-    /* Кегли кратны 0.5px: дробные значения дают дрейф базовой линии
-       при рендере html2canvas (текст смещался вниз в сохранённых файлах) */
-    const snap = (v: number) => Math.floor(v * 2) / 2;
-
     const MIN = 7.5;
     let lo = MIN;
-    let hi = snap(baseSize);
+    let hi = baseSize;
     el.style.fontSize = `${hi}px`;
     if (fits()) return; // помещается сразу
 
-    while (hi - lo > 0.5) {
-      const mid = snap((lo + hi) / 2);
-      if (mid <= lo || mid >= hi) break;
+    while (hi - lo > 0.4) {
+      const mid = (lo + hi) / 2;
       el.style.fontSize = `${mid}px`;
       if (fits()) lo = mid;
       else hi = mid;
     }
-    el.style.fontSize = `${lo}px`;
+    /* кратность 0.5px: браузер точнее рисует базовые линии при экспорте */
+    el.style.fontSize = `${Math.round(lo * 2) / 2}px`;
   }, [text, baseSize, maxHeight, lineHeight, fontFamily, nowrap]);
 
   return (
@@ -117,8 +113,9 @@ interface RowDef {
 }
 
 /**
- * Печатная наклейка. Все параметры (размер, шрифт, ячейки, цвета, графы)
+ * Печатная наклейка. Все параметры (размер в мм, шрифт, ячейки, цвета, графы)
  * управляются настройками. Рендер идентичен в предпросмотре, экспорте и печати.
+ * memo: не перерисовывается при автосохранении и тиках прогресса экспорта.
  */
 function LabelSheet({ data, settings }: { data: LabelData; settings: LabelSettings }) {
   const fs = settings.fontSize;
@@ -128,6 +125,7 @@ function LabelSheet({ data, settings }: { data: LabelData; settings: LabelSettin
   const headerText = headerDark ? "#ffffff" : "#000000";
   const R = settings.rows;
   const ff = settings.fontFamily;
+  const px = labelPx(settings);
 
   /* ── Формируем список видимых ячеек ── */
   const rows: RowDef[] = [];
@@ -205,8 +203,6 @@ function LabelSheet({ data, settings }: { data: LabelData; settings: LabelSettin
       <span style={{ fontSize: fs * 0.85, color: "#999", fontStyle: "italic" }}>Штрихкод не задан</span>
     )
   );
-
-  const px = labelPx(settings);
 
   return (
     <div

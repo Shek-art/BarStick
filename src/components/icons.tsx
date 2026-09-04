@@ -101,24 +101,6 @@ export const IconPlus = (p: P) => (
   </svg>
 );
 
-export const IconWinMin = (p: P) => (
-  <svg {...base(p)} strokeWidth="1.8">
-    <path d="M5 12h14" />
-  </svg>
-);
-
-export const IconWinMax = (p: P) => (
-  <svg {...base(p)} strokeWidth="1.8">
-    <rect x="5" y="5" width="14" height="14" rx="1.5" />
-  </svg>
-);
-
-export const IconWinClose = (p: P) => (
-  <svg {...base(p)} strokeWidth="1.8">
-    <path d="M6 6l12 12M18 6L6 18" />
-  </svg>
-);
-
 export const IconInfo = (p: P) => (
   <svg {...base(p)}>
     <circle cx="12" cy="12" r="9" />
@@ -130,12 +112,6 @@ export const IconSettings = (p: P) => (
   <svg {...base(p)}>
     <circle cx="12" cy="12" r="3" />
     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-  </svg>
-);
-
-export const IconDownload = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
   </svg>
 );
 
@@ -195,18 +171,18 @@ export const IconFit = (p: P) => (
   </svg>
 );
 
+export const IconTag = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.83z" />
+    <path d="M7 7h.01" />
+  </svg>
+);
+
 export const IconClipboardCheck = (p: P) => (
   <svg {...base(p)}>
     <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
     <rect x="9" y="3" width="6" height="4" rx="1" />
     <path d="M9 14l2 2 4-4" />
-  </svg>
-);
-
-export const IconTag = (p: P) => (
-  <svg {...base(p)}>
-    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-    <circle cx="7" cy="7" r="1.5" fill="currentColor" stroke="none" />
   </svg>
 );
 

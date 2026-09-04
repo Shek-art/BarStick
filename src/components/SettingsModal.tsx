@@ -41,7 +41,7 @@ function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) =
   );
 }
 
-/** Окно настроек наклейки: логотип, размер, шрифт, стиль, ячейки, свои графы */
+/** Окно настроек наклейки: логотип, размер (мм), шрифт, стиль, ячейки, свои графы */
 export default function SettingsModal({ settings, onChange, onClose, onLogoFile, onResetAll, notify }: Props) {
   const [newFieldTitle, setNewFieldTitle] = useState("");
   const logoInput = useRef<HTMLInputElement>(null);
@@ -108,7 +108,7 @@ export default function SettingsModal({ settings, onChange, onClose, onLogoFile,
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const f = e.target.files?.[0];
                     e.target.value = "";
                     if (f) onLogoFile(f);
@@ -172,7 +172,7 @@ export default function SettingsModal({ settings, onChange, onClose, onLogoFile,
               />
               мм
             </label>
-            <span className="text-[10.5px] text-ink-400">10 px на 1 мм при экспорте</span>
+            <span className="text-[10.5px] text-ink-400">10 px на 1 мм при экспорте и печати</span>
           </div>
         </section>
 
@@ -253,7 +253,7 @@ export default function SettingsModal({ settings, onChange, onClose, onLogoFile,
                   <button
                     key={c}
                     className={`swatch ${s.headerBg === c ? "active" : ""}`}
-                    style={{ background: c, border: c === "#ffffff" ? "2px solid #d5d9d4" : undefined, borderColor: s.headerBg === c ? "#23a058" : c === "#ffffff" ? "#d5d9d4" : undefined }}
+                    style={{ background: c, borderColor: s.headerBg === c ? "#23a058" : c === "#ffffff" ? "#d5d9d4" : undefined }}
                     onClick={() => onChange({ headerBg: c })}
                     title={c}
                   />

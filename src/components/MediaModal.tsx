@@ -53,7 +53,7 @@ export default function MediaModal({ kind, items, onClose, onRemove, onReplace, 
                 {isImages ? `Фото ${i + 1}` : `Штрихкод ${i + 1}`}
               </div>
               <div className="text-[10.5px] text-ink-400 truncate">
-                {src.startsWith("data:") ? "обработано · сохраняется в сессии" : "файл текущей сессии"}
+                {src.startsWith("data") ? "обработано · сохраняется в сессии" : "файл текущей сессии"}
               </div>
             </div>
 

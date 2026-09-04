@@ -9,7 +9,7 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   </React.StrictMode>
 );
 
-// Офлайн-режим и установка как приложение Windows (PWA)
+// Офлайн-режим и установка как приложение (PWA)
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js").catch(() => {

@@ -242,12 +242,7 @@ export default function ListChecker({ onToast, onStats }: Props) {
 
           {/* Сводные плитки */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-            <SummaryTile
-              title="Количество строк"
-              ok={report.countsMatch}
-              okText="одинаково"
-              badText="различается"
-            >
+            <SummaryTile title="Количество строк" ok={report.countsMatch} okText="одинаково" badText="различается">
               <div className="flex flex-wrap gap-1.5 mt-1.5">
                 {report.analyses.map((a, i) => (
                   <span key={a.id} className={`font-mono text-[11px] font-bold rounded-md border px-2 py-0.5 ${ACCENT[i % 3].chip}`}>
@@ -257,23 +252,13 @@ export default function ListChecker({ onToast, onStats }: Props) {
               </div>
             </SummaryTile>
 
-            <SummaryTile
-              title="Порядок номеров"
-              ok={report.numbersMatch}
-              okText="совпадает"
-              badText={`${report.mismatches.length} расхожд.`}
-            >
+            <SummaryTile title="Порядок номеров" ok={report.numbersMatch} okText="совпадает" badText={`${report.mismatches.length} расхожд.`}>
               <p className="text-[11px] text-ink-400 mt-1.5">
                 Первые числа «1_», «2_», … сверены по {report.positionsChecked} позициям.
               </p>
             </SummaryTile>
 
-            <SummaryTile
-              title="Дубликаты"
-              ok={report.dupeCount === 0}
-              okText="не найдено"
-              badText={`${report.dupeCount} шт`}
-            >
+            <SummaryTile title="Дубликаты" ok={report.dupeCount === 0} okText="не найдено" badText={`${report.dupeCount} шт`}>
               <p className="text-[11px] text-ink-400 mt-1.5">
                 Повторы строк и одинаковые номера внутри списков{report.crossDupes.length > 0 ? `; пересечений между списками: ${report.crossDupes.length}` : ""}.
               </p>

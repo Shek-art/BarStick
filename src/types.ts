@@ -42,9 +42,7 @@ export interface CustomField {
 export interface LabelSettings {
   logo: string | null;
   showLogo: boolean;
-  /** Ширина наклейки в миллиметрах */
   widthMm: number;
-  /** Высота наклейки в миллиметрах */
   heightMm: number;
   fontFamily: string;
   fontSize: number;

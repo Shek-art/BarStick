@@ -4,10 +4,10 @@ import {
   IconMinus, IconPlus, IconCheck, IconAlert, IconInfo, IconX,
 } from "./icons";
 
-/* ── Тайтлбар ────────────────────────────────────────────────── */
+/* ── Тайтлбар ──────────────────────────────────────────────── */
 export function TitleBar() {
   return (
-    <div className="no-print h-11 bg-ink-900 border-b border-white/8 flex items-center pl-3.5 select-none shrink-0">
+    <div className="no-print h-11 bg-ink-900 border-b border-white/8 flex items-center pl-4 select-none shrink-0">
       <div className="flex items-center gap-2.5">
         <LogoMark size={24} />
         <span className="font-display text-[11px] font-bold tracking-[0.14em] text-paper uppercase">
@@ -20,19 +20,19 @@ export function TitleBar() {
 
 /* ── Статусбар ──────────────────────────────────────────────── */
 interface StatusBarProps {
+  mode: "labels" | "checker";
   uniqueCount: number;
   totalCount: number;
   saveState: "idle" | "saving" | "saved";
   zoom: number;
   onZoom: (z: number) => void;
   labelSize?: string;
-  mode?: "labels" | "checker";
   checker?: { lists: number; lines: number; passed: boolean | null };
 }
 
 const ZOOM_STEPS = [0.4, 0.55, 0.7, 0.85, 1];
 
-export function StatusBar({ uniqueCount, totalCount, saveState, zoom, onZoom, labelSize, mode = "labels", checker }: StatusBarProps) {
+export function StatusBar({ mode, uniqueCount, totalCount, saveState, zoom, onZoom, labelSize, checker }: StatusBarProps) {
   const zi = ZOOM_STEPS.indexOf(zoom);
   return (
     <div className="no-print h-9 bg-ink-900 border-t border-white/8 flex items-center justify-between px-3.5 text-[11px] shrink-0 select-none">
@@ -47,9 +47,9 @@ export function StatusBar({ uniqueCount, totalCount, saveState, zoom, onZoom, la
             {saveState === "saving" ? "Сохранение…" : saveState === "saved" ? "Автосохранение включено" : "Локальная сессия"}
           </span>
         </span>
-        {labelSize && (
+        {labelSize && mode === "labels" && (
           <span className="hidden md:block font-mono text-[10px] font-bold text-ink-300 bg-white/6 rounded px-1.5 py-0.5">
-            {labelSize}px
+            {labelSize}
           </span>
         )}
       </div>
@@ -82,31 +82,34 @@ export function StatusBar({ uniqueCount, totalCount, saveState, zoom, onZoom, la
       )}
 
       <div className="flex items-center gap-3">
+        {mode === "labels" && (
+          <span className="hidden lg:block text-ink-500 font-mono text-[10px]">Ctrl+Enter — печать</span>
+        )}
         {mode === "checker" && (
           <span className="hidden lg:block text-ink-500 font-mono text-[10px]">TXT / CSV · до 3 списков</span>
         )}
         {mode === "labels" && (
-        <div className="flex items-center rounded-lg border border-white/10 overflow-hidden">
-          <button
-            className="w-7 h-6 flex items-center justify-center text-ink-300 hover:bg-white/10 hover:text-paper transition-colors disabled:opacity-30 cursor-pointer"
-            disabled={zi <= 0}
-            onClick={() => onZoom(ZOOM_STEPS[Math.max(0, zi - 1)])}
-            title="Уменьшить"
-          >
-            <IconMinus size={12} />
-          </button>
-          <span className="w-12 text-center font-mono text-[10.5px] font-bold text-paper border-x border-white/10 leading-6">
-            {Math.round(zoom * 100)}%
-          </span>
-          <button
-            className="w-7 h-6 flex items-center justify-center text-ink-300 hover:bg-white/10 hover:text-paper transition-colors disabled:opacity-30 cursor-pointer"
-            disabled={zi >= ZOOM_STEPS.length - 1}
-            onClick={() => onZoom(ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, zi + 1)])}
-            title="Увеличить"
-          >
-            <IconPlus size={12} />
-          </button>
-        </div>
+          <div className="flex items-center rounded-lg border border-white/10 overflow-hidden">
+            <button
+              className="w-7 h-6 flex items-center justify-center text-ink-300 hover:bg-white/10 hover:text-paper transition-colors disabled:opacity-30 cursor-pointer"
+              disabled={zi <= 0}
+              onClick={() => onZoom(ZOOM_STEPS[Math.max(0, zi - 1)])}
+              title="Уменьшить"
+            >
+              <IconMinus size={12} />
+            </button>
+            <span className="w-12 text-center font-mono text-[10.5px] font-bold text-paper border-x border-white/10 leading-6">
+              {Math.round(zoom * 100)}%
+            </span>
+            <button
+              className="w-7 h-6 flex items-center justify-center text-ink-300 hover:bg-white/10 hover:text-paper transition-colors disabled:opacity-30 cursor-pointer"
+              disabled={zi >= ZOOM_STEPS.length - 1}
+              onClick={() => onZoom(ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, zi + 1)])}
+              title="Увеличить"
+            >
+              <IconPlus size={12} />
+            </button>
+          </div>
         )}
       </div>
     </div>
