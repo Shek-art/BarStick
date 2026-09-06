@@ -1,6 +1,15 @@
+import { useState } from "react";
 import type { CustomField, FieldKey, FieldsState, SameFlags } from "../types";
 import Dropzone from "./Dropzone";
-import { IconImage } from "./icons";
+import TextEditorModal from "./TextEditorModal";
+import { IconImage, IconEditor } from "./icons";
+
+/** Какое поле открыто в большом редакторе */
+interface EditorTarget {
+  kind: "field" | "custom" | "copies";
+  key: string;
+  label: string;
+}
 
 interface Props {
   fields: FieldsState;
@@ -62,6 +71,35 @@ export default function EditorPanel({
   fields, customValues, customFields, same, images, barcodeUploads,
   onField, onCustomValue, onSame, onAddImages, onAddBarcodes, onViewImages, onViewBarcodes,
 }: Props) {
+  const [editor, setEditor] = useState<EditorTarget | null>(null);
+
+  /* Значение и сохранение для открытого в большом редакторе поля */
+  const editorValue = editor
+    ? editor.kind === "field"
+      ? fields[editor.key as FieldKey]
+      : editor.kind === "copies"
+        ? fields.copies
+        : customValues[editor.key] ?? ""
+    : "";
+
+  const saveEditor = (text: string) => {
+    if (!editor) return;
+    if (editor.kind === "field") onField(editor.key as FieldKey, text);
+    else if (editor.kind === "copies") onField("copies", text);
+    else onCustomValue(editor.key, text);
+  };
+
+  const openEditorBtn = (target: EditorTarget) => (
+    <button
+      type="button"
+      className="shrink-0 inline-flex items-center justify-center w-[22px] h-[22px] rounded-md border border-ink-200/80 bg-white text-ink-400 hover:text-moss-700 hover:border-moss-500/60 hover:bg-moss-500/10 active:scale-90 transition-all cursor-pointer"
+      onClick={() => setEditor(target)}
+      title={`Открыть «${target.label}» в большом окне`}
+    >
+      <IconEditor size={12} />
+    </button>
+  );
+
   return (
     <div className="flex flex-col gap-4">
       {/* Поля */}
@@ -87,7 +125,10 @@ export default function EditorPanel({
                       </span>
                     )}
                   </label>
-                  {sameKey && <SameSwitch on={same[sameKey]} onChange={(v) => onSame(sameKey, v)} />}
+                  <div className="flex items-center gap-2 shrink-0">
+                    {openEditorBtn({ kind: "field", key, label })}
+                    {sameKey && <SameSwitch on={same[sameKey]} onChange={(v) => onSame(sameKey, v)} />}
+                  </div>
                 </div>
                 <textarea
                   className="field-area"
@@ -115,9 +156,12 @@ export default function EditorPanel({
           <div className="flex flex-col gap-3">
             {customFields.map((f) => (
               <div key={f.id} className="pop-in">
-                <label className="block mb-1.5 text-[11px] font-extrabold uppercase tracking-[0.14em] text-moss-700">
-                  {f.title}
-                </label>
+                <div className="flex items-center justify-between mb-1.5 gap-2">
+                  <label className="min-w-0 truncate text-[11px] font-extrabold uppercase tracking-[0.14em] text-moss-700">
+                    {f.title}
+                  </label>
+                  {openEditorBtn({ kind: "custom", key: f.id, label: f.title })}
+                </div>
                 <textarea
                   className="field-area"
                   rows={2}
@@ -134,11 +178,14 @@ export default function EditorPanel({
 
       {/* Тираж */}
       <section className="rounded-xl border border-sky-info/30 bg-sky-info/6 p-3">
-        <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center justify-between mb-1.5 gap-2">
           <label className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-sky-info">
             Кол-во наклеек (тираж)
           </label>
-          <span className="text-[10.5px] text-sky-info/70 font-medium">по строкам</span>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-[10.5px] text-sky-info/70 font-medium">по строкам</span>
+            {openEditorBtn({ kind: "copies", key: "copies", label: "Кол-во наклеек (тираж)" })}
+          </div>
         </div>
         <textarea
           className="field-area font-mono text-[12.5px]!"
@@ -179,6 +226,20 @@ export default function EditorPanel({
           Кнопка «Просмотр» — замена, удаление и порядок. Всё сохраняется между запусками.
         </p>
       </section>
+
+      {/* Большое окно редактирования текста поля */}
+      {editor && (
+        <TextEditorModal
+          key={editor.kind + editor.key}
+          title={editor.label}
+          initial={editorValue}
+          onSave={(text) => {
+            saveEditor(text);
+            setEditor(null);
+          }}
+          onClose={() => setEditor(null)}
+        />
+      )}
     </div>
   );
 }
