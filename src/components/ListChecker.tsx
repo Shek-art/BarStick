@@ -379,6 +379,7 @@ export default function ListChecker({ onToast, onStats }: Props) {
           title={`Список ${editingList.name || "без названия"}`}
           initial={editingList.raw}
           onClose={() => setEditingId(null)}
+          notify={onToast}
           onSave={(text) => {
             patch(editingList.id, { raw: text });
             setEditingId(null);

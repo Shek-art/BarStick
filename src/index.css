@@ -131,6 +131,84 @@ body {
 }
 .checker-area:focus { border-color: #23a058; box-shadow: 0 0 0 3px rgba(30, 122, 72, 0.13); background: #fff; }
 
+/* ── Большой редактор списка с подсветкой совпадений ─────── */
+.editor-shell {
+  position: relative;
+  height: 44vh;
+  min-height: 280px;
+  border: 1px solid rgba(31, 42, 36, 0.18);
+  border-radius: 10px;
+  background: #fbfcfa;
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.editor-shell:focus-within { border-color: #23a058; box-shadow: 0 0 0 3px rgba(30, 122, 72, 0.13); background: #fff; }
+
+.editor-backdrop,
+.editor-ta {
+  position: absolute;
+  inset: 0;
+  padding: 12px 14px;
+  font-family: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  tab-size: 4;
+}
+
+.editor-backdrop {
+  overflow: hidden;
+  color: transparent;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.editor-ta {
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  resize: none;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #1f2a24;
+  overflow-y: auto;
+}
+.editor-ta::placeholder { color: #a3aca5; }
+.editor-ta::selection { background: rgba(35, 160, 88, 0.22); }
+
+.hl {
+  background: rgba(62, 207, 122, 0.32);
+  border-radius: 3px;
+  box-shadow: inset 0 -1px 0 rgba(30, 122, 72, 0.5);
+  transition: background 0.12s;
+}
+.hl-cur {
+  background: #f0b13e;
+  box-shadow: inset 0 -1px 0 rgba(138, 90, 18, 0.7);
+  animation: hl-pop 0.18s ease-out;
+}
+@keyframes hl-pop {
+  0% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+.chip-btn {
+  font-size: 11px;
+  font-weight: 700;
+  color: #4a5a50;
+  background: #fff;
+  border: 1px solid rgba(31, 42, 36, 0.16);
+  border-radius: 999px;
+  padding: 4px 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.chip-btn:hover { border-color: rgba(30, 122, 72, 0.55); color: #1e7a48; background: rgba(30, 122, 72, 0.07); transform: translateY(-1px); }
+.chip-btn:active { transform: scale(0.96); }
+
 .editor-big {
   min-height: 46vh;
   max-height: 62vh;

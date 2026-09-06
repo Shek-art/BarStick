@@ -194,6 +194,13 @@ export const IconFileText = (p: P) => (
 );
 
 /** Раскрыть текст в большом редакторе */
+export const IconSearch = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="M21 21l-4.35-4.35" />
+  </svg>
+);
+
 export const IconEditor = (p: P) => (
   <svg {...base(p)}>
     <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
