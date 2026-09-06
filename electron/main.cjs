@@ -9,8 +9,9 @@
  *
  * Запуск:  npx electron electron/main.cjs   (после npm run build)
  * Сборка:  npx electron-builder --config electron-builder.yml --win
+ * Windows 7/8: используйте electron@22 (см. make-exe-win7.bat и WINDOWS.md)
  */
-const { app, BrowserWindow, Menu, shell, dialog } = require("electron");
+const { app, BrowserWindow, Menu, shell, dialog, ipcMain } = require("electron");
 const http = require("http");
 const path = require("path");
 const fs = require("fs");
@@ -79,6 +80,27 @@ function resolveIcon() {
   return fs.existsSync(svg) ? svg : undefined;
 }
 
+/**
+ * Показать скачанный файл в «Загрузках».
+ * Браузер может переименовать файл при совпадении имён — тогда просто
+ * открываем саму папку «Загрузки».
+ */
+ipcMain.handle("open-folder-for", (_event, filename) => {
+  try {
+    const downloads = app.getPath("downloads");
+    const target = path.join(downloads, String(filename));
+    if (fs.existsSync(target)) {
+      shell.showItemInFolder(target);
+    } else {
+      shell.openPath(downloads);
+    }
+    return true;
+  } catch (err) {
+    console.error("open-folder-for failed:", err);
+    return false;
+  }
+});
+
 async function createWindow() {
   const indexPath = path.join(DIST, "index.html");
   if (!fs.existsSync(indexPath)) {
@@ -105,6 +127,7 @@ async function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      preload: path.join(__dirname, "preload.cjs"),
     },
   });
 

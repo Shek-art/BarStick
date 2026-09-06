@@ -21,7 +21,7 @@ export default function MediaModal({ kind, items, onClose, onRemove, onReplace, 
   return (
     <Modal
       title={isImages ? "Фото товара" : "Штрихкоды"}
-      subtitle={`${items.length} шт · порядок в списке = порядок наклеек`}
+      subtitle={`${items.length} шт · порядок в списке = порядок наклеек · сохраняется между запусками`}
       onClose={onClose}
       width={600}
     >
@@ -53,7 +53,7 @@ export default function MediaModal({ kind, items, onClose, onRemove, onReplace, 
                 {isImages ? `Фото ${i + 1}` : `Штрихкод ${i + 1}`}
               </div>
               <div className="text-[10.5px] text-ink-400 truncate">
-                {src.startsWith("data") ? "обработано · сохраняется в сессии" : "файл текущей сессии"}
+                {src.startsWith("data") ? "сохраняется между запусками" : "только в текущей сессии"}
               </div>
             </div>
 

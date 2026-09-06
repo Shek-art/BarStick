@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ListInput, CheckReport } from "../lib/listCheck";
 import { runChecks, countNonEmpty } from "../lib/listCheck";
+import TextEditorModal from "./TextEditorModal";
 import {
   IconPlus, IconX, IconCheck, IconAlert, IconInfo, IconSpark,
-  IconTrash, IconUpload, IconClipboardCheck, IconFileText,
+  IconTrash, IconUpload, IconClipboardCheck, IconFileText, IconEditor,
 } from "./icons";
 
 interface Props {
@@ -43,6 +44,7 @@ export default function ListChecker({ onToast, onStats }: Props) {
   );
   const [report, setReport] = useState<CheckReport | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const liveCounts = useMemo(() => lists.map((l) => countNonEmpty(l.raw)), [lists]);
@@ -84,6 +86,7 @@ export default function ListChecker({ onToast, onStats }: Props) {
     onToast("Демо-списки загружены — нажмите «Проверить»", "info");
   };
 
+  const editingList = lists.find((l) => l.id === editingId) ?? null;
   const passed = report !== null && report.errors + report.warns === 0;
 
   return (
@@ -181,6 +184,13 @@ export default function ListChecker({ onToast, onStats }: Props) {
                 />
                 <button className="icon-btn" title="Загрузить файл (TXT/CSV)" onClick={() => fileRefs.current[list.id]?.click()}>
                   <IconUpload size={13} />
+                </button>
+                <button
+                  className="icon-btn"
+                  title="Открыть в большом редакторе"
+                  onClick={() => setEditingId(list.id)}
+                >
+                  <IconEditor size={13} />
                 </button>
                 {lists.length > 2 && (
                   <button className="icon-btn danger" title="Убрать список" onClick={() => setLists((prev) => prev.filter((l) => l.id !== list.id))}>
@@ -361,6 +371,21 @@ export default function ListChecker({ onToast, onStats }: Props) {
               : "Списки готовы — нажмите «Проверить», чтобы получить отчёт"}
           </p>
         </div>
+      )}
+
+      {/* Полноэкранный редактор текста */}
+      {editingList && (
+        <TextEditorModal
+          title={`Список ${editingList.name || "без названия"}`}
+          initial={editingList.raw}
+          onClose={() => setEditingId(null)}
+          notify={onToast}
+          onSave={(text) => {
+            patch(editingList.id, { raw: text });
+            setEditingId(null);
+            onToast("Текст списка обновлён", "success");
+          }}
+        />
       )}
     </div>
   );

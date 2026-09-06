@@ -1,4 +1,7 @@
 # Конфигурация сборки установщика Windows (.exe) для «Генератор наклеек 4K»
+# electron-builder берёт версию Electron из node_modules:
+#   - Windows 10/11: npm i -D electron          (свежая)
+#   - Windows 7/8/8.1: npm i -D electron@22.3.15 (последняя совместимая)
 appId: com.4k.labelgen
 productName: "Генератор Наклеек 4K"
 copyright: "© 2026 4K"

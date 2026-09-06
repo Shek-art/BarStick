@@ -2,6 +2,7 @@ import JSZip from "jszip";
 import { jsPDF } from "jspdf";
 import { toCanvas } from "html-to-image";
 import type { LabelData } from "../types";
+import { revealDownloaded } from "./electronBridge";
 
 export interface ExportSize {
   w: number;
@@ -36,9 +37,8 @@ export function stickerFileName(label: LabelData): string {
 
 /**
  * Захват наклейки в canvas.
- * Используется html-to-image (SVG foreignObject): элемент отрисовывается
- * самим браузером, поэтому текст и вёрстка в файле совпадают с экраном
- * пиксель в пиксель.
+ * html-to-image (SVG foreignObject): элемент отрисовывается самим браузером,
+ * поэтому текст и вёрстка в файле совпадают с экраном пиксель в пиксель.
  */
 async function captureLabel(el: HTMLElement, size: ExportSize): Promise<HTMLCanvasElement> {
   try {
@@ -71,6 +71,7 @@ async function captureLabel(el: HTMLElement, size: ExportSize): Promise<HTMLCanv
   }
 }
 
+/** Скачивание файла; в Electron дополнительно раскрывает папку «Загрузки» */
 function triggerDownload(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -80,6 +81,7 @@ function triggerDownload(blob: Blob, filename: string): void {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  revealDownloaded(filename);
 }
 
 /** Экспорт всех наклеек в ZIP из JPG (масштаб 1.5×) */
@@ -152,6 +154,8 @@ export async function exportPdf(
     added++;
   });
 
-  pdf.save(`nakleyki_4k_${Date.now()}.pdf`);
+  const fname = `nakleyki_4k_${Date.now()}.pdf`;
+  pdf.save(fname);
+  revealDownloaded(fname);
   onProgress(100);
 }

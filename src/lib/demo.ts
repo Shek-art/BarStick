@@ -10,7 +10,7 @@ function productSvg(label: string, accent: string, glyph: string): string {
 <text x="320" y="392" text-anchor="middle" font-family="Arial, sans-serif" font-weight="600" font-size="26" fill="#3a4740">${label}</text>
 <rect x="150" y="420" width="340" height="6" rx="3" fill="${accent}" opacity="0.35"/>
 </svg>`;
-  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  return "image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
 }
 
 export const DEMO_IMAGES = [
@@ -29,7 +29,7 @@ export const DEMO_FIELDS: FieldsState = {
   copies: "2\n1",
 };
 
-/** Демо-изображения уже автономны (dataURL) — просто возвращаем их */
+/** Демо-изображения уже автономны (dataURL) */
 export async function resolveDemoImages(): Promise<string[]> {
   return DEMO_IMAGES;
 }

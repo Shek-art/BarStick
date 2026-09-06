@@ -44,7 +44,7 @@ export function StatusBar({ mode, uniqueCount, totalCount, saveState, zoom, onZo
             }`}
           />
           <span className={`font-semibold transition-colors ${saveState === "idle" ? "text-ink-300" : "text-ink-200"}`}>
-            {saveState === "saving" ? "Сохранение…" : saveState === "saved" ? "Автосохранение включено" : "Локальная сессия"}
+            {saveState === "saving" ? "Сохранение…" : saveState === "saved" ? "Всё сохранено" : "Локальная сессия"}
           </span>
         </span>
         {labelSize && mode === "labels" && (

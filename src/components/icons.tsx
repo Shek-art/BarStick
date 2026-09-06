@@ -193,6 +193,21 @@ export const IconFileText = (p: P) => (
   </svg>
 );
 
+/** Раскрыть текст в большом редакторе */
+export const IconSearch = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="11" cy="11" r="7" />
+    <path d="M21 21l-4.35-4.35" />
+  </svg>
+);
+
+export const IconEditor = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+    <path d="M18.4 2.6a2 2 0 0 1 2.8 2.8L13 13.6 9 14.6l1-4z" />
+  </svg>
+);
+
 /** Фирменный знак «4K» */
 export function LogoMark({ size = 30 }: { size?: number }) {
   return (

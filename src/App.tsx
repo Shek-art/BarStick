@@ -8,6 +8,7 @@ import { exportZip, exportPdf, ExportCancelled, type CancelToken } from "./lib/e
 import { loadSettings, saveSettings, DEFAULT_SETTINGS, labelPx } from "./lib/settings";
 import { processImageFile, fileToDataUrl } from "./lib/images";
 import { DEMO_FIELDS, resolveDemoImages } from "./lib/demo";
+import { isElectron } from "./lib/electronBridge";
 import LabelSheet from "./components/LabelSheet";
 import Workspace from "./components/Workspace";
 import EditorPanel from "./components/EditorPanel";
@@ -27,6 +28,8 @@ const K_FIELDS = "nkl4k:fields";
 const K_SAME = "nkl4k:same";
 const K_ZOOM = "nkl4k:zoom";
 const K_CUSTOM = "nkl4k:custom";
+const K_IMAGES = "nkl4k:images";
+const K_BARCODES = "nkl4k:barcodes";
 
 const EMPTY_FIELDS: FieldsState = {
   name: "", file: "", order: "", material: "", code: "", quantity: "", barcode: "", copies: "",
@@ -39,6 +42,12 @@ function loadJSON<T>(key: string, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+/** Из хранилища берём только dataURL (старые blob: ссылки не переживают перезапуск) */
+function loadMedia(key: string): string[] {
+  const arr = loadJSON<string[]>(key, []);
+  return Array.isArray(arr) ? arr.filter((x) => typeof x === "string" && x.startsWith("data:")) : [];
 }
 
 function TabBtn({ active, onClick, icon, label, badge }: {
@@ -64,8 +73,8 @@ export default function App() {
   const [fields, setFields] = useState<FieldsState>(() => loadJSON(K_FIELDS, EMPTY_FIELDS));
   const [same, setSame] = useState<SameFlags>(() => loadJSON(K_SAME, { order: false, material: false, quantity: false }));
   const [customValues, setCustomValues] = useState<Record<string, string>>(() => loadJSON(K_CUSTOM, {}));
-  const [images, setImages] = useState<string[]>([]);
-  const [barcodeUploads, setBarcodeUploads] = useState<string[]>([]);
+  const [images, setImages] = useState<string[]>(() => loadMedia(K_IMAGES));
+  const [barcodeUploads, setBarcodeUploads] = useState<string[]>(() => loadMedia(K_BARCODES));
   const [settings, setSettings] = useState(loadSettings);
   const [zoom, setZoom] = useState<number>(() => {
     const z = Number(localStorage.getItem(K_ZOOM));
@@ -73,9 +82,10 @@ export default function App() {
   });
 
   /* ── Вкладки ── */
-  const [tab, setTab] = useState<Tab>(() =>
-    localStorage.getItem("nkl4k:tab") === "checker" ? "checker" : "labels"
-  );
+  const [tab, setTab] = useState<Tab>(() => {
+    const t = localStorage.getItem("nkl4k:tab");
+    return t === "checker" ? "checker" : "labels";
+  });
   const [checkerStats, setCheckerStats] = useState<{ lists: number; lines: number; passed: boolean | null }>({
     lists: 0, lines: 0, passed: null,
   });
@@ -90,6 +100,7 @@ export default function App() {
 
   const toastId = useRef(0);
   const firstSave = useRef(true);
+  const quotaWarned = useRef(false);
   const cancelRef = useRef<CancelToken | null>(null);
   const exportLayerRef = useRef<HTMLDivElement>(null);
 
@@ -99,7 +110,7 @@ export default function App() {
     setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4200);
   }, []);
 
-  /* ── Автосохранение ── */
+  /* ── Автосохранение полей и настроек ── */
   useEffect(() => {
     if (firstSave.current) { firstSave.current = false; return; }
     setSaveState("saving");
@@ -117,6 +128,22 @@ export default function App() {
 
   useEffect(() => { saveSettings(settings); }, [settings]);
   useEffect(() => { localStorage.setItem("nkl4k:tab", tab); }, [tab]);
+
+  /* ── Сохранение загруженных фото и штрихкодов (переживает перезапуск) ── */
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(K_IMAGES, JSON.stringify(images));
+        localStorage.setItem(K_BARCODES, JSON.stringify(barcodeUploads));
+      } catch {
+        if (!quotaWarned.current) {
+          quotaWarned.current = true;
+          toast("Хранилище переполнено — медиафайлы не будут сохраняться между запусками", "error");
+        }
+      }
+    }, 600);
+    return () => clearTimeout(t);
+  }, [images, barcodeUploads, toast]);
 
   /* ── Сборка наклеек из полей ── */
   const labels = useMemo<LabelData[]>(() => {
@@ -167,8 +194,8 @@ export default function App() {
     toast(`Добавлено фото: ${processed.length}`, "success");
   }, [toast]);
 
-  const handleAddBarcodes = useCallback((files: File[]) => {
-    const urls = files.map((f) => URL.createObjectURL(f));
+  const handleAddBarcodes = useCallback(async (files: File[]) => {
+    const urls = await Promise.all(files.map(fileToDataUrl));
     setBarcodeUploads((prev) => [...prev, ...urls]);
     toast(`Добавлено штрихкодов: ${urls.length}`, "success");
   }, [toast]);
@@ -179,8 +206,8 @@ export default function App() {
     toast(`Фото ${i + 1} заменено`, "success");
   }, [toast]);
 
-  const handleReplaceBarcode = useCallback((i: number, file: File) => {
-    const url = URL.createObjectURL(file);
+  const handleReplaceBarcode = useCallback(async (i: number, file: File) => {
+    const url = await fileToDataUrl(file);
     setBarcodeUploads((prev) => prev.map((x, j) => (j === i ? url : x)));
     toast(`Штрихкод ${i + 1} заменён`, "success");
   }, [toast]);
@@ -221,12 +248,13 @@ export default function App() {
           toast(`Внимание: ${labels.length - available} из ${labels.length} наклеек не найдены для рендера`, "info");
         }
 
+        const where = isElectron() ? " — папка откроется автоматически" : " — файл в папке «Загрузки»";
         if (kind === "zip") {
           await exportZip(labels, getExportEl, sizePx, (pct) => setExporting({ pct, label: pct < 96 ? "Рендер JPG" : "Упаковка ZIP" }), token);
-          toast(`ZIP готов — ${labels.length} наклеек`, "success");
+          toast(`ZIP готов — ${labels.length} наклеек${where}`, "success");
         } else {
           await exportPdf(labels, getExportEl, sizePx, sizeMm, (pct) => setExporting({ pct, label: "Сборка PDF" }), token);
-          toast(`PDF сохранён — ${labels.length} страниц (${sizeMm.wMm}×${sizeMm.hMm} мм)`, "success");
+          toast(`PDF сохранён — ${labels.length} страниц (${sizeMm.wMm}×${sizeMm.hMm} мм)${where}`, "success");
         }
       } catch (err) {
         if (err instanceof ExportCancelled) {

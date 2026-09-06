@@ -4,7 +4,7 @@ import type { LabelSettings, RowKey } from "../types";
 import {
   DEFAULT_SETTINGS, MM_PRESETS, FONTS, BORDER_COLORS, HEADER_BGS, ROW_ORDER, ROW_TITLES,
 } from "../lib/settings";
-import { IconTrash, IconPlus, IconUpload, IconX } from "./icons";
+import { IconTrash, IconPlus, IconUpload, IconX, IconCheck } from "./icons";
 
 interface Props {
   settings: LabelSettings;
@@ -65,11 +65,14 @@ export default function SettingsModal({ settings, onChange, onClose, onLogoFile,
   return (
     <Modal
       title="Настройки наклейки"
-      subtitle="Все изменения применяются мгновенно и сохраняются автоматически"
+      subtitle="Изменения применяются мгновенно и сохраняются автоматически"
       onClose={onClose}
       width={720}
       footer={
         <>
+          <span className="mr-auto flex items-center gap-1.5 text-[11px] font-semibold text-moss-600">
+            <IconCheck size={13} /> Сохранено автоматически
+          </span>
           <button
             className="px-3.5 py-2 rounded-lg border border-rust/40 text-rust text-[12px] font-bold hover:bg-rust/10 transition-colors cursor-pointer"
             onClick={() => { onResetAll(); notify("Настройки сброшены к стандартным", "info"); }}

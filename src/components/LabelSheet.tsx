@@ -42,7 +42,6 @@ function FitText({ text, baseSize, maxHeight, weight = 400, letterSpacing, color
       if (fits()) lo = mid;
       else hi = mid;
     }
-    /* кратность 0.5px: браузер точнее рисует базовые линии при экспорте */
     el.style.fontSize = `${Math.round(lo * 2) / 2}px`;
   }, [text, baseSize, maxHeight, lineHeight, fontFamily, nowrap]);
 
@@ -115,7 +114,6 @@ interface RowDef {
 /**
  * Печатная наклейка. Все параметры (размер в мм, шрифт, ячейки, цвета, графы)
  * управляются настройками. Рендер идентичен в предпросмотре, экспорте и печати.
- * memo: не перерисовывается при автосохранении и тиках прогресса экспорта.
  */
 function LabelSheet({ data, settings }: { data: LabelData; settings: LabelSettings }) {
   const fs = settings.fontSize;
